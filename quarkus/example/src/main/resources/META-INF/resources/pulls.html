@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style type="text/css">
+body {
+  font-family: sans-serif;
+}
+</style>
+<title>Quarkus Open Pull Requests</title>
+</head>
+
+<body>
+    <h1>Quarkus Open Pull Requests</h1>
+
+    {#with inject:client.pullRequests}
+    <p>Found <strong>{size}</strong> open pull pequests. 
+    {#if size > 20}
+    That's too many.
+    {:else}
+    That's a reasonable amount.
+    {/if}</p>
+    {#each}
+    <article>
+        <h3>{iter:count}. {title}</h3>
+        <ul>
+            <li>Author: <strong>{user.login}</strong></li>
+            <li>Link: <a target="_blank" href="{html_url}">{html_url}</a></li>
+        </ul>
+    </article>
+    {/each} {/with}
+
+    <p>Page generated at {generatedTime}.</p>
+
+</body>
+
+</html>
