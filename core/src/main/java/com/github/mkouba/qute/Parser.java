@@ -211,7 +211,7 @@ class Parser {
                 }
                 sectionBlockStack.peek().addNode(section.build());
             }
-        } else {
+        } else if (content.charAt(0) != '!') {
             sectionBlockStack.peek().addNode(new ExpressionNode(content));
         }
         this.buffer = new StringBuilder();
@@ -370,7 +370,8 @@ class Parser {
         EXPRESSION(null),
         SECTION('#'),
         SECTION_END('/'),
-        SECTION_BLOCK(':');
+        SECTION_BLOCK(':'),
+        ;
 
         private final Character command;
 

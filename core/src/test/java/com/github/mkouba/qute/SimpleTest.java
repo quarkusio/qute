@@ -94,4 +94,10 @@ public class SimpleTest {
                 Engine.builder().addValueResolver(ValueResolvers.thisResolver()).build().parse("{{foo}} {this}").render("bar"));
     }
 
+    @Test
+    public void testComment() {
+        assertEquals("OK",
+                Engine.builder().build().parse("{! This is my comment}OK").render(null));
+    }
+
 }
