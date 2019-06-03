@@ -11,7 +11,7 @@ Let's start with the convenient `Engine.builder()`:
 
 [source,java]
 ----
-// Create a new instance of engine and use the default value resolvers
+// Create a new engine and use the default value resolvers
 Engine engine = Engine.builder().addDefaultValueResolvers().build();
 ----
 
@@ -25,7 +25,7 @@ Template myTemplate = engine.parse("Hello {this}!");
 System.out.println(myTemplate.render("world")); // -> Hello world!
 ----
 
-We can also register the template for later use"
+We can also register the template for later use:
 
 [source,java]
 ----
@@ -33,7 +33,7 @@ engine.putTemplate("my", myTemplate);
 System.out.println(engine.getTemplate("my").render("world")); // -> Hello world!
 ----
 
-NOTE: `Engine.getTemplate()` is also used when including templates. TODO link to include section
+NOTE: `Engine.getTemplate()` is also used when including templates. See <<include_helper>>.
 
 === Template Locator
 
@@ -48,32 +48,32 @@ An expression tag whose content starts with `!` is a comment and is ignored.
 === Expressions
 
 An expression consists of an optional namespace followed by `:` and several parts separated by `.`.
-The first part of the expression is always resolved against the <<current_context_object, "current context object">>.
+The first part of the expression is always resolved against the <<current_context_object, current context object>>.
 For an expression that starts with a namespace the current context object is found using the available `NamespaceResolver`s.
 For an expression that does not start with a namespace the current context object is derived from the position of the tag.
 All other parts are resolved using `ValueResolver`s against the result of the previous resolution.
 
 For example, expression `{name}` has no namespace and a single part - "name".
-"name" will be resolved using all available `ValueResolver`s against the current context object.
+"name" will be resolved using all available `ValueResolver` s against the current context object.
 However, the expression `{global:colors}` has "global" namespace and a single part - "colors".
-First, all available `NamespaceResolver`s will be used to find the current context object.
-And afterwards `ValueResolver`s will be used to resolve "colors" against the context object found. 
+First, all available `NamespaceResolver` s will be used to find the current context object.
+And afterwards `ValueResolver` s will be used to resolve "colors" against the context object found. 
 
 ----
-{name} [1]
-{global:colors} [2] 
+{name} <1>
+{global:colors} <2> 
 ----
-[1] no namespace, one part - name
-[2] namespace global, one part - colors
+<1> no namespace, one part - name
+<2> namespace global, one part - colors
 
 An expression part could be a "virtual method" in which case the name can be followed by parameters in parentheses. 
 
 ----
-{item.getLabels(1)} [1]
-{name or 'John'} [2]
+{item.getLabels(1)} <1>
+{name or 'John'} <2>
 ----
-[1] no namespace, two parts - "item", "getLabels(1)", the second part is a virtual method with name "getLabels" and params "1"
-[2] infix notation, translated to "name.or('John')", no namespace, two parts - "name", "or('John')"
+<1> no namespace, two parts - "item", "getLabels(1)", the second part is a virtual method with name "getLabels" and params "1"
+<2> infix notation, translated to "name.or('John')", no namespace, two parts - "name", "or('John')"
 
 [[current_context_object]]
 ==== Current Context
@@ -84,15 +84,15 @@ However, section tags may change the current context object.
 A typical example is each/for loop - during iteration the content of the section is rendered with each element as the current context object:
 
 ----
-{name} [1]
+{name} <1>
 {#each items}
- {name} [2]
- {data:name} [3]
+ {name} <2>
+ {data:name} <3>
 {/each}
 ----
-[1] this "name" is resolved against the root context object
-[2] this "name" is resolved against the iteration element
-[3] this "name" is resolved against the root context object
+<1> this "name" is resolved against the root context object
+<2> this "name" is resolved against the iteration element
+<3> this "name" is resolved against the root context object
 
 === Sections
 
@@ -113,7 +113,7 @@ Item is nor a sword nor a shield.
 {/if}
 ----
 
-===# Built-in Sections
+==== Built-in Sections
 
 ===== Loop
 
@@ -123,16 +123,19 @@ The first one is using `each` alias.
 
 ----
 {#each items}
- {name} -> the "name" is resolved against the element
+ {name} <1>
 {/each}
 ----
+<1> "name" is resolved against the current iteration element
 
 The other one is using `for` alias and can specify the namespace used to reference the iteration element:
 ----
-{#for item in items} -> item is namespace
-  {item:name} -> namespace is optional but makes it possible to distinguish the context object e.g. when using nested loops
+{#for item in items} <1>
+  {item:name} <2>
 {/for}
 ----
+<1> "item" is the namespace
+<2> The namespace is optional but makes it possible to distinguish the context object e.g. when using nested loops
 
 ===== If
 
@@ -211,6 +214,7 @@ It's also possible to specify an alias that can be used as a namespace:
 {/with}
 ----
 
+[[include_helper]]
 ===== Include/Insert
 
 TODO
