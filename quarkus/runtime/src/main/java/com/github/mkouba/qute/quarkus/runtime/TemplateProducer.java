@@ -1,10 +1,5 @@
 package com.github.mkouba.qute.quarkus.runtime;
 
-import static com.github.mkouba.qute.ValueResolvers.collectionResolver;
-import static com.github.mkouba.qute.ValueResolvers.mapResolver;
-import static com.github.mkouba.qute.ValueResolvers.orResolver;
-import static com.github.mkouba.qute.ValueResolvers.thisResolver;
-
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
@@ -69,8 +64,7 @@ public class TemplateProducer {
             return bean.isAvailable() ? bean.get() : Result.NOT_FOUND;
         }).build());
         // Basic value resolvers
-        builder.addValueResolvers(mapResolver(), collectionResolver(),
-                thisResolver(), orResolver());
+        builder.addDefaultValueResolvers();
         // Add generated resolvers
         for (String resolverClass : resolverClasses) {
             builder.addValueResolver(createResolver(resolverClass));

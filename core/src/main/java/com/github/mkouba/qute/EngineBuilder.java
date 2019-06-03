@@ -1,5 +1,10 @@
 package com.github.mkouba.qute;
 
+import static com.github.mkouba.qute.ValueResolvers.collectionResolver;
+import static com.github.mkouba.qute.ValueResolvers.mapResolver;
+import static com.github.mkouba.qute.ValueResolvers.orResolver;
+import static com.github.mkouba.qute.ValueResolvers.thisResolver;
+
 import java.io.Reader;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -60,6 +65,16 @@ public final class EngineBuilder {
     public EngineBuilder addValueResolver(ValueResolver resolver) {
         this.valueResolvers.add(resolver);
         return this;
+    }
+    
+    /**
+     * Add the default value resolvers.
+     *  
+     * @return self
+     */
+    public EngineBuilder addDefaultValueResolvers() {
+        return addValueResolvers(mapResolver(), collectionResolver(),
+                thisResolver(), orResolver());
     }
 
     public EngineBuilder addNamespaceResolver(NamespaceResolver resolver) {
