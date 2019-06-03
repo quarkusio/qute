@@ -1,0 +1,228 @@
+= Qute 
+
+Our goal is to design a templating engine with simple syntax, async resolution and great extensibility.
+We believe that templates should contain minimal logic.
+And this attitude affects the syntax and APIs heavily.
+
+== Engine
+
+You'll always need an engine instance first.
+Let's start with the convenient `Engine.builder()`:
+
+[source,java]
+----
+// Create a new instance of engine and use the default value resolvers
+Engine engine = Engine.builder().addDefaultValueResolvers().build();
+----
+
+`Engine` represents a central point for template management.
+It has a dedicated configuration and a template cache.
+Now, it's possible to parse a template and render our first "hello world":
+
+[source,java]
+----
+Template myTemplate = engine.parse("Hello {this}!");
+System.out.println(myTemplate.render("world")); // -> Hello world!
+----
+
+We can also register the template for later use"
+
+[source,java]
+----
+engine.putTemplate("my", myTemplate);
+System.out.println(engine.getTemplate("my").render("world")); // -> Hello world!
+----
+
+NOTE: `Engine.getTemplate()` is also used when including templates. TODO link to include section
+
+=== Template Locator
+
+Manual registration is sometimes handy but it's also possible to register a template locator using `EngineBuilder.addLocator(Function<String, Optional<Reader>>)`.
+This locator is used whenever the `Engine.getTemplate()` method is called and the engine has no template for a given id.
+
+== Building Blocks
+
+Dynamic parts of a template include expression tags - `{foo}`, and section tags - `{#if foo}{/foo}`.
+An expression tag whose content starts with `!` is a comment and is ignored.
+
+=== Expressions
+
+An expression consists of an optional namespace followed by `:` and several parts separated by `.`.
+The first part of the expression is always resolved against the <<current_context_object, "current context object">>.
+For an expression that starts with a namespace the current context object is found using the available `NamespaceResolver`s.
+For an expression that does not start with a namespace the current context object is derived from the position of the tag.
+All other parts are resolved using `ValueResolver`s against the result of the previous resolution.
+
+For example, expression `{name}` has no namespace and a single part - "name".
+"name" will be resolved using all available `ValueResolver`s against the current context object.
+However, the expression `{global:colors}` has "global" namespace and a single part - "colors".
+First, all available `NamespaceResolver`s will be used to find the current context object.
+And afterwards `ValueResolver`s will be used to resolve "colors" against the context object found. 
+
+----
+{name} [1]
+{global:colors} [2] 
+----
+[1] no namespace, one part - name
+[2] namespace global, one part - colors
+
+An expression part could be a "virtual method" in which case the name can be followed by parameters in parentheses. 
+
+----
+{item.getLabels(1)} [1]
+{name or 'John'} [2]
+----
+[1] no namespace, two parts - "item", "getLabels(1)", the second part is a virtual method with name "getLabels" and params "1"
+[2] infix notation, translated to "name.or('John')", no namespace, two parts - "name", "or('John')"
+
+[[current_context_object]]
+==== Current Context
+
+If an expression does not specify a namespace the current context object is derived from the position of the tag.
+The root context object is passed to the `Template.render()` method and is always accessible using the `data` namespace.
+However, section tags may change the current context object.
+A typical example is each/for loop - during iteration the content of the section is rendered with each element as the current context object:
+
+----
+{name} [1]
+{#each items}
+ {name} [2]
+ {data:name} [3]
+{/each}
+----
+[1] this "name" is resolved against the root context object
+[2] this "name" is resolved against the iteration element
+[3] this "name" is resolved against the root context object
+
+=== Sections
+
+A section has a start tag - content starts with `#`, followed with the name of the secion such as `{#if}`, and an end tag - content starts with `/` and contains the name of the section `{/if}`.
+The start tag can also define parameters.
+A section contains one or more section blocks. 
+The main block is always present.
+Additional blocks start with a label and can also have parameters - `{:else if item.isActive}`.
+A section helper that defines the logic of a section can "execute" any of the blocks and evaluate the parameters.
+
+----
+{#if item.name is 'sword'}
+It's a sword!
+{:else if item.name is 'shield'}
+It's a shield!
+{:else}
+Item is nor a sword nor a shield.
+{/if}
+----
+
+===# Built-in Sections
+
+===== Loop
+
+The loop section helper makes it possible to iterate over an instance of `Iterable` or a `Map` entry set.
+It has two flavors.
+The first one is using `each` alias.
+
+----
+{#each items}
+ {name} -> the "name" is resolved against the element
+{/each}
+----
+
+The other one is using `for` alias and can specify the namespace used to reference the iteration element:
+----
+{#for item in items} -> item is namespace
+  {item:name} -> namespace is optional but makes it possible to distinguish the context object e.g. when using nested loops
+{/for}
+----
+
+===== If
+
+A basic control flow section.
+The simplest possible version accepts a single parameter and renders the contet if it's evaluated to `true` (or `Boolean.TRUE`).
+
+----
+{#if item.active}
+ This item is active.
+{/if}
+----
+
+You can also use the following operators:
+
+|===
+|Operator |Aliases 
+
+|equals 
+|`eq`, `==`, `is` 
+
+|not equals 
+|`ne`, `!=`
+
+|greater than 
+|`gt`, `>`
+
+|greater equals
+|`ge`, `>=`
+
+|less than 
+|`lt`, `<`
+
+|less equals 
+|`le`, `<=`
+
+|===
+
+TODO: BigDecimal conversion etc.
+
+----
+{#if item.age > 10}
+ This item is very old.
+{/if}
+----
+
+You can add any number of "else" blocks:
+
+----
+{#if item.age > 10}
+ This item is very old.
+{:else if item.age > 5}
+ This item is quite old.
+{:else if item.age > 2}
+ This item is old.
+{:else}
+ This item is not old at all!
+{/if}
+----
+
+===== With
+
+This section is used to set the current context object.
+This could be useful to simplify template structure.
+
+----
+{#with item.parent}
+ Parent is now the current context object. {name} -> name will be resolved against the item.parent.
+{/with}
+----
+
+It's also possible to specify an alias that can be used as a namespace:
+
+----
+{#with item.parent as myParent}
+ {myParent:name}
+{/with}
+----
+
+===== Include/Insert
+
+TODO
+
+== Quarkus Integration
+
+TODO
+
+== Extension Points
+
+TODO
+
+=== Section helpers
+
+TODO
