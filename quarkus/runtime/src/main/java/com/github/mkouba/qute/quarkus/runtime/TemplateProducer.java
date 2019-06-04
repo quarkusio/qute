@@ -106,8 +106,12 @@ public class TemplateProducer {
         if (path == null) {
             throw new IllegalStateException();
         }
-        // Note that engine may not be initialized and so we inject a delegating template 
-        return new InjectableTemplate(this::getEngine, path.value());
+        if (path.value().isEmpty()) {
+            return new InjectableTemplate(this::getEngine, injectionPoint.getMember().getName());
+        } else {
+            // Note that engine may not be initialized and so we inject a delegating template 
+            return new InjectableTemplate(this::getEngine, path.value());
+        }
     }
 
     @Produces
@@ -117,16 +121,23 @@ public class TemplateProducer {
     }
 
     private Optional<Reader> locate(String path) {
-        String resource = "META-INF/resources/" + path;
+        // Try {path} and {path}.html
+        InputStream in = locatePath("META-INF/resources/" + path);
+        if (in == null) {
+            in = locatePath("META-INF/resources/" + path + ".html");
+        }
+        if (in != null) {
+            return Optional.of(new InputStreamReader(in, Charset.forName("utf-8")));
+        }
+        return Optional.empty();
+    }
+
+    private InputStream locatePath(String path) {
         ClassLoader cl = Thread.currentThread().getContextClassLoader();
         if (cl == null) {
             cl = TemplateProducer.class.getClassLoader();
         }
-        InputStream in = cl.getResourceAsStream(resource);
-        if (in == null) {
-            return Optional.empty();
-        }
-        return Optional.of(new InputStreamReader(in, Charset.forName("utf-8")));
+        return cl.getResourceAsStream(path);
     }
 
     static class InjectableTemplate implements Template {
@@ -150,7 +161,11 @@ public class TemplateProducer {
         }
 
         Template delegate() {
-            return engine.get().getTemplate(path);
+            Template template = engine.get().getTemplate(path);
+            if (template == null) {
+                throw new IllegalStateException("No template found for path: " + path);
+            }
+            return template;
         }
 
     }

@@ -12,9 +12,9 @@ import io.quarkus.vertx.web.RoutingExchange;
 
 public class DetailResource {
 
-    @TemplatePath("detail.html")
+    @TemplatePath
     Template detail;
-    
+
     @Route(path = "/item", methods = GET, produces = "text/html")
     public void item(RoutingExchange exchange) {
         exchange.ok(detail.render(new Item("Alpha", BigDecimal.valueOf(1000))));

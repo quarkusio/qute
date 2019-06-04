@@ -145,6 +145,9 @@ public class QuteProcessor {
             }
         }
         for (String path : templatePaths) {
+            if (path.isEmpty()) {
+                continue;
+            }
             paths.produce(new TemplatePathBuildItem(path));
             hotDeploymentFiles.produce(new HotDeploymentWatchedFileBuildItem("META-INF/resources/" + path));
         }

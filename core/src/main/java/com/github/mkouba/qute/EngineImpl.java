@@ -17,7 +17,7 @@ import org.slf4j.LoggerFactory;
  * 
  */
 class EngineImpl implements Engine {
-    
+
     private static final Logger LOGGER = LoggerFactory.getLogger(EngineImpl.class);
 
     private final Map<String, SectionHelperFactory<?>> sectionHelperFactories;
@@ -62,13 +62,9 @@ class EngineImpl implements Engine {
     }
 
     public Template getTemplate(String id) {
-        Template template = templates.get(id);
-        if (template == null) {
-            templates.putIfAbsent(id, load(id));
-        }
-        return template;
+        return templates.computeIfAbsent(id, this::load);
     }
-    
+
     private Template load(String id) {
         for (Function<String, Optional<Reader>> locator : locators) {
             Optional<Reader> reader = locator.apply(id);

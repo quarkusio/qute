@@ -21,7 +21,7 @@ import io.quarkus.vertx.web.RoutingExchange;
 
 public class ItemsResource {
 
-    @TemplatePath("items.html")
+    @TemplatePath
     Template items;
 
     void addResolver(@Observes EngineBuilder builder) {

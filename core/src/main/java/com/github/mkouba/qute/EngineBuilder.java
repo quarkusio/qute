@@ -1,6 +1,7 @@
 package com.github.mkouba.qute;
 
 import static com.github.mkouba.qute.ValueResolvers.collectionResolver;
+import static com.github.mkouba.qute.ValueResolvers.mapEntryResolver;
 import static com.github.mkouba.qute.ValueResolvers.mapResolver;
 import static com.github.mkouba.qute.ValueResolvers.orResolver;
 import static com.github.mkouba.qute.ValueResolvers.thisResolver;
@@ -78,7 +79,7 @@ public final class EngineBuilder {
      * @return self
      */
     public EngineBuilder addDefaultValueResolvers() {
-        return addValueResolvers(mapResolver(), collectionResolver(),
+        return addValueResolvers(mapResolver(), mapEntryResolver(), collectionResolver(),
                 thisResolver(), orResolver());
     }
 

@@ -19,7 +19,7 @@ import io.quarkus.vertx.web.RoutingExchange;
 
 public class PullsResource {
 
-    @TemplatePath("pulls.html")
+    @TemplatePath
     Template pulls;
 
     @Inject

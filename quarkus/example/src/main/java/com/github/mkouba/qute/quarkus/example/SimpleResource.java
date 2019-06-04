@@ -17,7 +17,7 @@ import io.vertx.ext.web.Router;
 
 public class SimpleResource {
 
-    @TemplatePath("simple.html")
+    @TemplatePath
     Template simple;
 
     @Route(path = "/simple", methods = GET, produces = "text/html")
