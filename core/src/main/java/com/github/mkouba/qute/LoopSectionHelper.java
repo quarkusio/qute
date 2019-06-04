@@ -11,9 +11,10 @@ import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.stream.Stream;
 
 /**
- * Basic {@code loop} statement.
+ * Basic sequential {@code loop} statement.
  */
 public class LoopSectionHelper implements SectionHelper {
 
@@ -36,31 +37,26 @@ public class LoopSectionHelper implements SectionHelper {
     @Override
     public CompletionStage<ResultNode> resolve(SectionResolutionContext context) {
         return context.resolutionContext().evaluate(iterable).thenCompose(it -> {
+            // TODO ideally, we should not block here but we still need to retain the order of results 
             List<CompletionStage<ResultNode>> results = new ArrayList<>();
             Iterator<?> iterator;
             if (it instanceof Iterable) {
                 iterator = ((Iterable<?>) it).iterator();
             } else if (it instanceof Map) {
                 iterator = ((Map<?, ?>) it).entrySet().iterator();
+            } else if (it instanceof Stream) {
+                iterator = ((Stream<?>) it).sequential().iterator();
             } else {
-                throw new IllegalStateException("Cannot get iterator from: " + it);
+                throw new IllegalStateException("Cannot iterate over: " + it);
             }
             int idx = 0;
             while (iterator.hasNext()) {
-                Object element = iterator.next();
-                AtomicReference<ResolutionContext> resolutionContextHolder = new AtomicReference<>();
-                List<NamespaceResolver> namespaceResolvers = noAlias
-                        ? Collections.singletonList(new IterationMetaResolver(idx++, iterator.hasNext()))
-                        : ImmutableList.of(new IterationMetaResolver(idx++, iterator.hasNext()),
-                                new AliasResolver(alias, resolutionContextHolder));
-                ResolutionContext child = context.resolutionContext().createChild(element, namespaceResolvers);
-                resolutionContextHolder.set(child);
-                results.add(context.execute(child));
+                results.add(nextElement(iterator.next(), idx++, iterator.hasNext(), context));
             }
             if (results.isEmpty()) {
                 return CompletableFuture.completedFuture(ResultNode.NOOP);
             }
-            CompletableFuture<ResultNode> result = new CompletableFuture<ResultNode>();
+            CompletableFuture<ResultNode> result = new CompletableFuture<>();
             CompletableFuture<ResultNode>[] all = new CompletableFuture[results.size()];
             idx = 0;
             for (CompletionStage<ResultNode> r : results) {
@@ -77,6 +73,17 @@ public class LoopSectionHelper implements SectionHelper {
                     });
             return result;
         });
+    }
+
+    CompletionStage<ResultNode> nextElement(Object element, int index, boolean hasNext, SectionResolutionContext context) {
+        AtomicReference<ResolutionContext> resolutionContextHolder = new AtomicReference<>();
+        List<NamespaceResolver> namespaceResolvers = noAlias
+                ? Collections.singletonList(new IterationMetaResolver(index, hasNext))
+                : ImmutableList.of(new IterationMetaResolver(index, hasNext),
+                        new AliasResolver(alias, resolutionContextHolder));
+        ResolutionContext child = context.resolutionContext().createChild(element, namespaceResolvers);
+        resolutionContextHolder.set(child);
+        return context.execute(child);
     }
 
     public static class Factory implements SectionHelperFactory<LoopSectionHelper> {

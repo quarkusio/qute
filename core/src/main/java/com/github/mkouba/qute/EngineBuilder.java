@@ -51,6 +51,11 @@ public final class EngineBuilder {
         return this;
     }
 
+    public EngineBuilder addDefaultSectionHelpers() {
+        return addSectionHelpers(new IfSectionHelper.Factory(), new LoopSectionHelper.Factory(),
+                new WithSectionHelper.Factory(), new IncludeSectionHelper.Factory(), new InsertSectionHelper.Factory());
+    }
+
     public EngineBuilder addValueResolver(Supplier<ValueResolver> resolverSupplier) {
         return addValueResolver(resolverSupplier.get());
     }
@@ -66,10 +71,10 @@ public final class EngineBuilder {
         this.valueResolvers.add(resolver);
         return this;
     }
-    
+
     /**
      * Add the default value resolvers.
-     *  
+     * 
      * @return self
      */
     public EngineBuilder addDefaultValueResolvers() {

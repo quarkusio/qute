@@ -23,8 +23,7 @@ public class LoopSectionTest {
 
         Engine engine = Engine.builder()
                 .addSectionHelper(new IfSectionHelper.Factory())
-                .addSectionHelper(new LoopSectionHelper.Factory()).addValueResolver(ValueResolvers.mapResolver())
-                .addValueResolver(ValueResolvers.thisResolver())
+                .addSectionHelper(new LoopSectionHelper.Factory()).addDefaultValueResolvers()
                 .build();
 
         Template template = engine.parse("{#for item in this}{iter:count}.{name}={item:name}{#if iter:hasNext}\n{/if}{/for}");
@@ -45,11 +44,25 @@ public class LoopSectionTest {
         map.put("name", "Lu");
 
         Engine engine = Engine.builder()
-                .addSectionHelper(new LoopSectionHelper.Factory()).addValueResolver(ValueResolvers.mapEntryResolver())
-                .addValueResolver(ValueResolvers.thisResolver())
+                .addSectionHelper(new LoopSectionHelper.Factory()).addDefaultValueResolvers()
                 .build();
 
         assertEquals("name:Lu", engine.parse("{#each this}{key}:{value}{/each}").render(map));
+    }
+
+    @Test
+    public void testStream() {
+        List<String> data = new ArrayList<>();
+        data.add("alpha");
+        data.add("bravo");
+        data.add("charlie");
+
+        Engine engine = Engine.builder()
+                .addSectionHelper(new LoopSectionHelper.Factory()).addDefaultValueResolvers()
+                .build();
+
+        assertEquals("alpha:charlie:",
+                engine.parse("{#each this}{this}:{/each}").render(data.stream().filter(e -> !e.startsWith("b"))));
     }
 
 }
