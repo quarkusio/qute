@@ -11,8 +11,8 @@ Let's start with the convenient `Engine.builder()`:
 
 [source,java]
 ----
-// Create a new engine and use the default value resolvers
-Engine engine = Engine.builder().addDefaultValueResolvers().build();
+// Create a new engine and use the default value resolvers and section helpers
+Engine engine = Engine.builder().addDefaultValueResolvers().addDefaultSectionHelpers().build();
 ----
 
 `Engine` represents a central point for template management.
@@ -79,7 +79,7 @@ An expression part could be a "virtual method" in which case the name can be fol
 ==== Current Context
 
 If an expression does not specify a namespace the current context object is derived from the position of the tag.
-The root context object is passed to the `Template.render()` method and is always accessible using the `data` namespace.
+By default, the current context object is the root context object that is passed to the `Template.render()` method and is also always accessible using the `data` namespace.
 However, section tags may change the current context object.
 A typical example is each/for loop - during iteration the content of the section is rendered with each element as the current context object:
 
@@ -115,9 +115,9 @@ Item is nor a sword nor a shield.
 
 ==== Built-in Sections
 
-===== Loop
+===== Loop Section
 
-The loop section helper makes it possible to iterate over an instance of `Iterable` or a `Map` entry set.
+The loop section helper makes it possible to iterate over an instance of `Iterable`, `Map` entry set and `Stream`.
 It has two flavors.
 The first one is using `each` alias.
 
@@ -137,7 +137,15 @@ The other one is using `for` alias and can specify the namespace used to referen
 <1> "item" is the namespace
 <2> The namespace is optional but makes it possible to distinguish the context object e.g. when using nested loops
 
-===== If
+It's also possible to access the iteration metadata inside the loop, under the `iter` namespace:
+----
+{#each items}
+ {iter:count}. {name} <1>
+{/each}
+----
+<1> `count` represents one-based index. Metadata also include zero-based `index`, `hasNext`, `odd`, `even`.
+
+===== If Section
 
 A basic control flow section.
 The simplest possible version accepts a single parameter and renders the contet if it's evaluated to `true` (or `Boolean.TRUE`).
@@ -195,16 +203,17 @@ You can add any number of "else" blocks:
 {/if}
 ----
 
-===== With
+===== With Section
 
-This section is used to set the current context object.
-This could be useful to simplify template structure.
+This section can be used to set the current context object.
+This could be useful to simplify the template structure.
 
 ----
 {#with item.parent}
- Parent is now the current context object. {name} -> name will be resolved against the item.parent.
+ {name}  <1>
 {/with}
 ----
+<1> The name will be resolved against the `item.parent`.
 
 It's also possible to specify an alias that can be used as a namespace:
 
@@ -215,9 +224,41 @@ It's also possible to specify an alias that can be used as a namespace:
 ----
 
 [[include_helper]]
-===== Include/Insert
+===== Include/Insert Sections
 
-TODO
+These sections can be used to include another template and possibly override some parts of the template (template inheritance).
+
+.Template "base"
+[source,html]
+----
+<html>
+<head>
+<meta charset="UTF-8">
+<title>{#insert title}Default Title{/insert}</title> <1>
+</head>
+<body>
+    {#insert body}No body :-){/insert} <2>
+</body>
+</html>
+----
+<1> `insert` sections are used to specify parts that could be overriden by a template that includes the given template.
+<2> An `insert` section may define the default content that is rendered if not overriden.
+
+.Template "detail"
+[source,html]
+----
+{#include base} <1>
+    {:title}My Title{/title} <2>
+    {:body}
+    <div>
+        My body.
+    </div>
+{/include}
+----
+<1> `include` section is used to specify the extended template.
+<2> Blocks with labels are used to specify the parts that should be overriden.
+
+NOTE: Section blocks can also define an optional end tag - `{/title}`.
 
 == Quarkus Integration
 
