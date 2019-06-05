@@ -2,7 +2,6 @@ package com.github.mkouba.qute.quarkus.deployment;
 
 import static io.quarkus.deployment.annotations.ExecutionTime.RUNTIME_INIT;
 
-import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -116,10 +115,6 @@ public class QuteProcessor {
         for (AnnotationInstance templateExtension : index.getAnnotations(TEMPLATE_EXTENSION)) {
             if (templateExtension.target().kind() == Kind.METHOD) {
                 MethodInfo method = templateExtension.target().asMethod();
-                // TODO move checks to generator
-                if (!Modifier.isStatic(method.flags())) {
-                    throw new IllegalStateException("Template extension methods must be static");
-                }
                 extensionMethodGenerator.generate(method);
             }
         }

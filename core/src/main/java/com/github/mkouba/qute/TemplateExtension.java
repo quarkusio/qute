@@ -9,12 +9,12 @@ import java.lang.annotation.Target;
 /**
  * A value resolver is automatically generated for template extension methods.
  * 
- * The method must be static, return {@link Object} and accept one parameter whose class is used to match the base object. The
- * method name is used to match the property name.
+ * The method must be static, must not return {@code void} and must accept at least one parameter. The class of the first
+ * parameter is used to match the base object. The method name is used to match the property name.
  * 
  * <pre>
  * {@literal @}TemplateExtension
- * static Object discountedPrice(Item item) {
+ * static BigDecimal discountedPrice(Item item) {
  *    return item.getPrice().multiply(new BigDecimal("0.9"));
  * }
  * </pre>

@@ -1,6 +1,5 @@
 package com.github.mkouba.qute.quarkus.example;
 
-import static com.github.mkouba.qute.ValueResolver.match;
 import static io.vertx.core.http.HttpMethod.GET;
 
 import java.math.BigDecimal;
@@ -10,9 +9,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import javax.enterprise.event.Observes;
-
-import com.github.mkouba.qute.EngineBuilder;
 import com.github.mkouba.qute.Template;
 import com.github.mkouba.qute.TemplateExtension;
 import com.github.mkouba.qute.quarkus.TemplatePath;
@@ -25,15 +21,14 @@ public class ItemsResource {
     @TemplatePath
     Template items;
 
-    void addResolver(@Observes EngineBuilder builder) {
-        builder.addValueResolver(
-                match(BigDecimal.class).andMatch("scaled").resolve((bd, n) -> bd.setScale(0, RoundingMode.HALF_UP)));
-
+    @TemplateExtension
+    static BigDecimal discountedPrice(Item item) {
+        return item.getPrice().multiply(new BigDecimal("0.9"));
     }
 
     @TemplateExtension
-    static Object discountedPrice(Item item) {
-        return item.getPrice().multiply(new BigDecimal("0.9"));
+    static BigDecimal scaled(BigDecimal value, int newScale) {
+        return value.setScale(newScale, RoundingMode.HALF_UP);
     }
 
     @Route(path = "/items", methods = GET, produces = "text/html")

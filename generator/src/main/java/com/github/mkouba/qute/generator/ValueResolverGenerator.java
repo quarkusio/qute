@@ -140,11 +140,11 @@ public class ValueResolverGenerator {
         MethodCreator resolve = valueResolver.getMethodCreator("resolve", CompletionStage.class, EvalContext.class)
                 .setModifiers(ACC_PUBLIC);
 
-        ResultHandle valueContext = resolve.getMethodParam(0);
-        ResultHandle base = resolve.invokeInterfaceMethod(Descriptors.GET_BASE, valueContext);
+        ResultHandle evalContext = resolve.getMethodParam(0);
+        ResultHandle base = resolve.invokeInterfaceMethod(Descriptors.GET_BASE, evalContext);
 
-        ResultHandle name = resolve.invokeInterfaceMethod(Descriptors.GET_NAME, valueContext);
-        ResultHandle params = resolve.invokeInterfaceMethod(Descriptors.GET_PARAMS, valueContext);
+        ResultHandle name = resolve.invokeInterfaceMethod(Descriptors.GET_NAME, evalContext);
+        ResultHandle params = resolve.invokeInterfaceMethod(Descriptors.GET_PARAMS, evalContext);
         ResultHandle paramsCount = resolve.invokeInterfaceMethod(Descriptors.COLLECTION_SIZE, params);
 
         // Fields
@@ -208,7 +208,7 @@ public class ValueResolverGenerator {
                         matchScope.load(methodParams.size()));
                 for (int i = 0; i < methodParams.size(); i++) {
                     ResultHandle evalResult = matchScope.invokeInterfaceMethod(
-                            Descriptors.EVALUATE, valueContext,
+                            Descriptors.EVALUATE, evalContext,
                             matchScope.invokeInterfaceMethod(Descriptors.LIST_GET, params,
                                     matchScope.load(i)));
                     matchScope.writeArrayValue(resultsArray, i,
@@ -297,8 +297,8 @@ public class ValueResolverGenerator {
         MethodCreator appliesTo = valueResolver.getMethodCreator("appliesTo", boolean.class, EvalContext.class)
                 .setModifiers(ACC_PUBLIC);
 
-        ResultHandle valueContext = appliesTo.getMethodParam(0);
-        ResultHandle base = appliesTo.invokeInterfaceMethod(Descriptors.GET_BASE, valueContext);
+        ResultHandle evalContext = appliesTo.getMethodParam(0);
+        ResultHandle base = appliesTo.invokeInterfaceMethod(Descriptors.GET_BASE, evalContext);
         BranchResult baseTest = appliesTo.ifNull(base);
         BytecodeCreator baseNotNullBranch = baseTest.falseBranch();
 

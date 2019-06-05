@@ -17,7 +17,7 @@ body {
     {#each items}
         <li><strong>{name.toUpperCase ?: "NO NAME"}</strong>:
         {#if price > data:limit} 
-          {discountedPrice.scaled} (<s>{price}</s>)
+          {discountedPrice.scaled(0)} (<s>{price}</s>)
         {:else}
           {price}
         {/if}</li>
