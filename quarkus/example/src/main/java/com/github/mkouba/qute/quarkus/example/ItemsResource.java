@@ -14,6 +14,7 @@ import javax.enterprise.event.Observes;
 
 import com.github.mkouba.qute.EngineBuilder;
 import com.github.mkouba.qute.Template;
+import com.github.mkouba.qute.TemplateExtension;
 import com.github.mkouba.qute.quarkus.TemplatePath;
 
 import io.quarkus.vertx.web.Route;
@@ -26,10 +27,13 @@ public class ItemsResource {
 
     void addResolver(@Observes EngineBuilder builder) {
         builder.addValueResolver(
-                match(Item.class).andMatch("discountedPrice").resolve((i, n) -> i.getPrice().multiply(new BigDecimal("0.9"))));
-        builder.addValueResolver(
                 match(BigDecimal.class).andMatch("scaled").resolve((bd, n) -> bd.setScale(0, RoundingMode.HALF_UP)));
 
+    }
+
+    @TemplateExtension
+    static Object discountedPrice(Item item) {
+        return item.getPrice().multiply(new BigDecimal("0.9"));
     }
 
     @Route(path = "/items", methods = GET, produces = "text/html")

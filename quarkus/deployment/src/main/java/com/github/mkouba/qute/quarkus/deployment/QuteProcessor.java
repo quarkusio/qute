@@ -2,6 +2,7 @@ package com.github.mkouba.qute.quarkus.deployment;
 
 import static io.quarkus.deployment.annotations.ExecutionTime.RUNTIME_INIT;
 
+import java.lang.reflect.Modifier;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -12,14 +13,18 @@ import java.util.stream.Collectors;
 
 import org.jboss.jandex.AnnotationInstance;
 import org.jboss.jandex.AnnotationTarget;
+import org.jboss.jandex.AnnotationTarget.Kind;
 import org.jboss.jandex.AnnotationValue;
 import org.jboss.jandex.ClassInfo;
 import org.jboss.jandex.DotName;
 import org.jboss.jandex.IndexView;
+import org.jboss.jandex.MethodInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.mkouba.qute.Template;
+import com.github.mkouba.qute.TemplateExtension;
+import com.github.mkouba.qute.generator.ExtensionMethodGenerator;
 import com.github.mkouba.qute.generator.ValueResolverGenerator;
 import com.github.mkouba.qute.quarkus.TemplatePath;
 import com.github.mkouba.qute.quarkus.runtime.QuteTemplate;
@@ -43,6 +48,7 @@ public class QuteProcessor {
     private static final Logger LOGGER = LoggerFactory.getLogger(QuteProcessor.class);
 
     static final DotName TEMPLATE_PATH = DotName.createSimple(TemplatePath.class.getName());
+    static final DotName TEMPLATE_EXTENSION = DotName.createSimple(TemplateExtension.class.getName());
 
     @BuildStep
     void generateValueResolvers(BuildProducer<GeneratedClassBuildItem> generatedClass,
@@ -64,7 +70,11 @@ public class QuteProcessor {
         ClassOutput classOutput = new ClassOutput() {
             @Override
             public void write(String name, byte[] data) {
-                String className = name.substring(0, name.lastIndexOf(ValueResolverGenerator.SUFFIX)).replace("/", ".");
+                int idx = name.lastIndexOf(ExtensionMethodGenerator.SUFFIX);
+                if (idx == -1) {
+                    idx = name.lastIndexOf(ValueResolverGenerator.SUFFIX);
+                }
+                String className = name.substring(0, idx).replace("/", ".");
                 boolean appClass = appClassPredicate.test(className);
                 LOGGER.debug("Writing {} [appClass={}]", name, appClass);
                 generatedClass.produce(new GeneratedClassBuildItem(appClass, name, data));
@@ -99,7 +109,23 @@ public class QuteProcessor {
             generator.generate(templateData.target().asClass());
         }
 
-        for (String generateType : generator.getGeneratedTypes()) {
+        Set<String> generateTypes = new HashSet<>();
+        generateTypes.addAll(generator.getGeneratedTypes());
+
+        ExtensionMethodGenerator extensionMethodGenerator = new ExtensionMethodGenerator(classOutput);
+        for (AnnotationInstance templateExtension : index.getAnnotations(TEMPLATE_EXTENSION)) {
+            if (templateExtension.target().kind() == Kind.METHOD) {
+                MethodInfo method = templateExtension.target().asMethod();
+                // TODO move checks to generator
+                if (!Modifier.isStatic(method.flags())) {
+                    throw new IllegalStateException("Template extension methods must be static");
+                }
+                extensionMethodGenerator.generate(method);
+            }
+        }
+        generateTypes.addAll(extensionMethodGenerator.getGeneratedTypes());
+
+        for (String generateType : generateTypes) {
             generatedResolvers.produce(new GeneratedValueResolverBuildItem(generateType.replace("/", ".")));
         }
     }

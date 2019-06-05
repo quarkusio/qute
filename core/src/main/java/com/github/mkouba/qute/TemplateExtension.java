@@ -1,0 +1,26 @@
+package com.github.mkouba.qute;
+
+import static java.lang.annotation.ElementType.METHOD;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
+
+import java.lang.annotation.Retention;
+import java.lang.annotation.Target;
+
+/**
+ * A value resolver is automatically generated for template extension methods.
+ * 
+ * The method must be static, return {@link Object} and accept one parameter whose class is used to match the base object. The
+ * method name is used to match the property name.
+ * 
+ * <pre>
+ * {@literal @}TemplateExtension
+ * static Object discountedPrice(Item item) {
+ *    return item.getPrice().multiply(new BigDecimal("0.9"));
+ * }
+ * </pre>
+ */
+@Retention(RUNTIME)
+@Target(METHOD)
+public @interface TemplateExtension {
+
+}
