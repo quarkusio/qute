@@ -262,7 +262,105 @@ NOTE: Section blocks can also define an optional end tag - `{/title}`.
 
 == Quarkus Integration
 
-TODO
+If you want to use Qute in your Quarkus application add the following dependency to your project:
+
+[source,xml]
+----
+<dependency>
+   <groupId>com.github.mkouba.qute</groupId>
+   <artifactId>qute-quarkus</artifactId>
+</dependency>
+----
+
+An `Engine` instance is automatically configured.
+Moreover, it's possible to inject a template located in `META-INF/resources`: 
+
+[source,java]
+----
+class MyBean {
+
+  @TemplatePath <1>
+  Template items; <2>
+  
+  void doSomething() {
+    System.out.println(items.render(data));
+  }
+}
+----
+<1> This qualifier instructs the container to injected a compiled instance of a template.
+<2> If there is no `TemplatePath#value()` provided the field name is used to locate the template. In this particular case, the container will attempt to locate a template with path `META-INF/resources/item.html`.
+
+=== Template extension methods
+
+A value resolver is automatically generated for template extension methods annotated with `@TemplateExtension`.
+The method must be static, must not return `void` and must accept at least one parameter. 
+The class of the first parameter is used to match the base object and the method name is used to match the property name.
+
+[source,java]
+----
+class Item {
+
+    public final BigDecimal price;
+
+    public Item(BigDecimal price) {
+        this.price = price;
+    }
+}
+
+class MyExtension {
+
+  @TemplateExtension
+  static BigDecimal discountedPrice(Item item) {
+     return item.getPrice().multiply(new BigDecimal("0.9"));
+  }
+}
+----
+
+This template extension method makes it possible to render the following template:
+
+[source,html]
+----
+{#each items} <1>
+   {discountedPrice}
+{/each}
+----
+<1> Let's suppose that `items` is resolved to a list of `Item` instances.
+
+=== Template data
+
+ A value resolver is automatically generated for a type annotated with `@TemplateData`.
+ Note that non-public members, constructors, static initializers, static, synthetic and void methods are always ignored.
+ This way Quarkus does not need to use reflection to access the data in your classes.
+
+[source,java]
+----
+@TemplateData
+class Item {
+
+    public final BigDecimal price;
+
+    public Item(BigDecimal price) {
+        this.price = price;
+    }
+}
+----
+
+Any instance of `Item` can be used directly in the template:
+
+[source,html]
+----
+{#each items} <1>
+   {price}
+{/each}
+----
+<1> Let's suppose that `items` is resolved to a list of `Item` instances.
+
+=== Dev Mode
+
+All injected templates are watched for changes.
+A modification results in an application restart.
+
+NOTE: Once https://github.com/quarkusio/quarkus/issues/2704 is resolved we do plan to re-create the modified template without the need for restart.
 
 == Extension Points
 
@@ -271,3 +369,4 @@ TODO
 === Section helpers
 
 TODO
+ 
