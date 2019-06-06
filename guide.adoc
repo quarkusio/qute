@@ -287,8 +287,8 @@ class MyBean {
   }
 }
 ----
-<1> This qualifier instructs the container to injected a compiled instance of a template.
-<2> If there is no `TemplatePath#value()` provided the field name is used to locate the template. In this particular case, the container will attempt to locate a template with path `META-INF/resources/item.html`.
+<1> This qualifier instructs the container to inject an instance of a template.
+<2> If there is no `TemplatePath#value()` provided the field name is used to locate the template. In this particular case, the container will attempt to locate a template with path `META-INF/resources/items.html`.
 
 === Template extension methods
 
