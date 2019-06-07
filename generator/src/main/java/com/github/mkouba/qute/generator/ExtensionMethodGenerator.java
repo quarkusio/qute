@@ -6,6 +6,9 @@ import static com.github.mkouba.qute.generator.ValueResolverGenerator.simpleName
 import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
 
 import java.lang.reflect.Modifier;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -67,7 +70,9 @@ public class ExtensionMethodGenerator {
             baseName = simpleName(declaringClass);
         }
         String targetPackage = packageName(declaringClass.name());
-        String generatedName = generatedNameFromTarget(targetPackage, baseName, "_" + method.name() + SUFFIX);
+
+        String suffix = SUFFIX + "_" + method.name() + "_" + sha1(method.parameters().toString());
+        String generatedName = generatedNameFromTarget(targetPackage, baseName, suffix);
         generatedTypes.add(generatedName);
 
         ClassCreator valueResolver = ClassCreator.builder().classOutput(classOutput).className(generatedName)
@@ -185,6 +190,20 @@ public class ExtensionMethodGenerator {
             paramsNotMatching.returnValue(paramsNotMatching.load(false));
         }
         appliesTo.returnValue(appliesTo.load(true));
+    }
+
+    static String sha1(String value) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-1");
+            byte[] digest = md.digest(value.getBytes(StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder(40);
+            for (int i = 0; i < digest.length; ++i) {
+                sb.append(Integer.toHexString((digest[i] & 0xFF) | 0x100).substring(1, 3));
+            }
+            return sb.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
 }
