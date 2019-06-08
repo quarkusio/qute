@@ -1,5 +1,6 @@
 package com.github.mkouba.qute.quarkus.example;
 
+import static com.github.mkouba.qute.TemplateExtension.ANY;
 import static com.github.mkouba.qute.ValueResolver.match;
 
 import java.util.concurrent.CompletableFuture;
@@ -16,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.mkouba.qute.EngineBuilder;
+import com.github.mkouba.qute.TemplateExtension;
 
 import io.vertx.axle.core.Vertx;
 import io.vertx.axle.ext.web.client.WebClient;
@@ -41,9 +43,14 @@ public class GithubClient {
         webClient = WebClient.create(vertx.get());
     }
 
+    // Declarative approach
+    @TemplateExtension(matchName = ANY)
+    static Object resolveJsonObject(JsonObject object, String name) {
+        return object.getValue(name);
+    }
+
     void addJsonResolver(@Observes EngineBuilder builder) {
-        builder.addValueResolver(
-                match(JsonObject.class).resolve((o, n) -> o.getValue(n)));
+        // Programmatic approach
         builder.addValueResolver(
                 match(JsonArray.class).andMatch("size")
                         .resolve((a, n) -> a.size()));

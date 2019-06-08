@@ -22,5 +22,9 @@ import java.lang.annotation.Target;
 @Retention(RUNTIME)
 @Target(METHOD)
 public @interface TemplateExtension {
+    
+    static final String ANY = "*";
+    
+    String matchName() default "";
 
 }

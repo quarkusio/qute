@@ -16,11 +16,15 @@ import java.util.concurrent.CompletionStage;
 import java.util.function.BiConsumer;
 import java.util.stream.Collectors;
 
+import org.jboss.jandex.AnnotationInstance;
+import org.jboss.jandex.AnnotationValue;
 import org.jboss.jandex.ClassInfo;
+import org.jboss.jandex.DotName;
 import org.jboss.jandex.MethodInfo;
 import org.jboss.jandex.Type.Kind;
 
 import com.github.mkouba.qute.EvalContext;
+import com.github.mkouba.qute.TemplateExtension;
 import com.github.mkouba.qute.ValueResolver;
 
 import io.quarkus.gizmo.AssignableResultHandle;
@@ -34,6 +38,9 @@ import io.quarkus.gizmo.MethodDescriptor;
 import io.quarkus.gizmo.ResultHandle;
 
 public class ExtensionMethodGenerator {
+
+    public static final DotName TEMPLATE_EXTENSION = DotName.createSimple(TemplateExtension.class.getName());
+    static final DotName STRING = DotName.createSimple(String.class.getName());
 
     public static final String SUFFIX = "_Extension" + ValueResolverGenerator.SUFFIX;
 
@@ -62,6 +69,25 @@ public class ExtensionMethodGenerator {
             throw new IllegalStateException("Template extension method must declare at least one parameter: " + method);
         }
 
+        String matchName = null;
+        AnnotationInstance extensionAnnotation = method.annotation(TEMPLATE_EXTENSION);
+        if (extensionAnnotation != null) {
+            AnnotationValue matchNameValue = extensionAnnotation.value("matchName");
+            if (matchNameValue != null) {
+                matchName = matchNameValue.asString();
+            }
+        }
+        if (matchName == null) {
+            matchName = method.name();
+        } else if (matchName.equals(TemplateExtension.ANY)) {
+            // The second parameter must be a string
+            if (method.parameters().size() < 2 || !method.parameters().get(1).name().equals(STRING)) {
+                throw new IllegalStateException(
+                        "Template extension method matching multiple names must declare at least two parameters and the second parameter must be string: "
+                                + method);
+            }
+        }
+
         ClassInfo declaringClass = method.declaringClass();
         String baseName;
         if (declaringClass.enclosingClass() != null) {
@@ -78,26 +104,33 @@ public class ExtensionMethodGenerator {
         ClassCreator valueResolver = ClassCreator.builder().classOutput(classOutput).className(generatedName)
                 .interfaces(ValueResolver.class).build();
 
-        implementAppliesTo(valueResolver, method);
-        implementResolve(valueResolver, declaringClass, method);
+        implementAppliesTo(valueResolver, method, matchName);
+        implementResolve(valueResolver, declaringClass, method, matchName);
 
         valueResolver.close();
     }
 
-    private void implementResolve(ClassCreator valueResolver, ClassInfo declaringClass, MethodInfo method) {
+    private void implementResolve(ClassCreator valueResolver, ClassInfo declaringClass, MethodInfo method, String matchName) {
         MethodCreator resolve = valueResolver.getMethodCreator("resolve", CompletionStage.class, EvalContext.class)
                 .setModifiers(ACC_PUBLIC);
 
         ResultHandle evalContext = resolve.getMethodParam(0);
         ResultHandle base = resolve.invokeInterfaceMethod(Descriptors.GET_BASE, evalContext);
+        boolean matchAny = matchName.equals(TemplateExtension.ANY);
 
         ResultHandle ret;
         int paramSize = method.parameters().size();
-        if (paramSize == 1) {
+        if (paramSize == 1 || (paramSize == 2 && matchAny)) {
+            ResultHandle[] args = new ResultHandle[paramSize];
+            args[0] = base;
+            if (matchAny) {
+                args[1] = resolve.invokeInterfaceMethod(Descriptors.GET_NAME, evalContext);
+            }
             ret = resolve.invokeStaticMethod(Descriptors.COMPLETED_FUTURE, resolve
                     .invokeStaticMethod(MethodDescriptor.ofMethod(declaringClass.name().toString(), method.name(),
                             method.returnType().name().toString(),
-                            method.parameters().get(0).name().toString()), base));
+                            method.parameters().stream().map(p -> p.name().toString()).collect(Collectors.toList()).toArray()),
+                            args));
         } else {
             ret = resolve
                     .newInstance(MethodDescriptor.ofConstructor(CompletableFuture.class));
@@ -122,6 +155,11 @@ public class ExtensionMethodGenerator {
             BytecodeCreator whenComplete = whenCompleteFun.getBytecode();
             AssignableResultHandle whenBase = whenComplete.createVariable(Object.class);
             whenComplete.assign(whenBase, base);
+            AssignableResultHandle whenName = null;
+            if (matchAny) {
+                whenName = whenComplete.createVariable(String.class);
+                whenComplete.assign(whenName, resolve.invokeInterfaceMethod(Descriptors.GET_NAME, evalContext));
+            }
             AssignableResultHandle whenRet = whenComplete.createVariable(CompletableFuture.class);
             whenComplete.assign(whenRet, ret);
             AssignableResultHandle whenResults = whenComplete.createVariable(CompletableFuture[].class);
@@ -132,10 +170,15 @@ public class ExtensionMethodGenerator {
             BytecodeCreator success = throwableIsNull.trueBranch();
 
             ResultHandle[] args = new ResultHandle[paramSize];
+            int shift = 1;
             args[0] = whenBase;
+            if (matchAny) {
+                args[1] = whenName;
+                shift++;
+            }
             for (int i = 0; i < (paramSize - 1); i++) {
                 ResultHandle paramResult = success.readArrayValue(whenResults, i);
-                args[i + 1] = success.invokeVirtualMethod(Descriptors.COMPLETABLE_FUTURE_GET, paramResult);
+                args[i + shift] = success.invokeVirtualMethod(Descriptors.COMPLETABLE_FUTURE_GET, paramResult);
             }
 
             ResultHandle invokeRet = success
@@ -154,10 +197,11 @@ public class ExtensionMethodGenerator {
         resolve.returnValue(ret);
     }
 
-    private void implementAppliesTo(ClassCreator valueResolver, MethodInfo method) {
+    private void implementAppliesTo(ClassCreator valueResolver, MethodInfo method, String matchName) {
         MethodCreator appliesTo = valueResolver.getMethodCreator("appliesTo", boolean.class, EvalContext.class)
                 .setModifiers(ACC_PUBLIC);
 
+        boolean matchAny = matchName.equals(TemplateExtension.ANY);
         ResultHandle evalContext = appliesTo.getMethodParam(0);
         ResultHandle base = appliesTo.invokeInterfaceMethod(Descriptors.GET_BASE, evalContext);
         ResultHandle name = appliesTo.invokeInterfaceMethod(Descriptors.GET_NAME, evalContext);
@@ -173,10 +217,12 @@ public class ExtensionMethodGenerator {
         baseNotAssignable.returnValue(baseNotAssignable.load(false));
 
         // Test property name
-        ResultHandle nameTest = appliesTo.invokeVirtualMethod(Descriptors.EQUALS, name,
-                appliesTo.load(method.name()));
-        BytecodeCreator nameNotMatched = appliesTo.ifNonZero(nameTest).falseBranch();
-        nameNotMatched.returnValue(nameNotMatched.load(false));
+        if (!matchAny) {
+            ResultHandle nameTest = appliesTo.invokeVirtualMethod(Descriptors.EQUALS, name,
+                    appliesTo.load(matchName));
+            BytecodeCreator nameNotMatched = appliesTo.ifNonZero(nameTest).falseBranch();
+            nameNotMatched.returnValue(nameNotMatched.load(false));
+        }
 
         int paramSize = method.parameters().size();
         if (paramSize > 1) {
@@ -185,7 +231,7 @@ public class ExtensionMethodGenerator {
             ResultHandle paramsCount = appliesTo.invokeInterfaceMethod(Descriptors.COLLECTION_SIZE, params);
             BranchResult paramsTest = appliesTo
                     .ifNonZero(appliesTo.invokeStaticMethod(Descriptors.INTEGER_COMPARE,
-                            appliesTo.load(paramSize - 1), paramsCount));
+                            appliesTo.load(paramSize - (matchAny ? 2 : 1)), paramsCount));
             BytecodeCreator paramsNotMatching = paramsTest.trueBranch();
             paramsNotMatching.returnValue(paramsNotMatching.load(false));
         }

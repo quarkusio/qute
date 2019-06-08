@@ -22,7 +22,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.github.mkouba.qute.Template;
-import com.github.mkouba.qute.TemplateExtension;
 import com.github.mkouba.qute.generator.ExtensionMethodGenerator;
 import com.github.mkouba.qute.generator.ValueResolverGenerator;
 import com.github.mkouba.qute.quarkus.TemplatePath;
@@ -47,8 +46,7 @@ public class QuteProcessor {
     private static final Logger LOGGER = LoggerFactory.getLogger(QuteProcessor.class);
 
     static final DotName TEMPLATE_PATH = DotName.createSimple(TemplatePath.class.getName());
-    static final DotName TEMPLATE_EXTENSION = DotName.createSimple(TemplateExtension.class.getName());
-
+    
     @BuildStep
     void generateValueResolvers(BuildProducer<GeneratedClassBuildItem> generatedClass,
             BeanArchiveIndexBuildItem beanArchiveIndex, ApplicationArchivesBuildItem applicationArchivesBuildItem,
@@ -112,7 +110,7 @@ public class QuteProcessor {
         generateTypes.addAll(generator.getGeneratedTypes());
 
         ExtensionMethodGenerator extensionMethodGenerator = new ExtensionMethodGenerator(classOutput);
-        for (AnnotationInstance templateExtension : index.getAnnotations(TEMPLATE_EXTENSION)) {
+        for (AnnotationInstance templateExtension : index.getAnnotations(ExtensionMethodGenerator.TEMPLATE_EXTENSION)) {
             if (templateExtension.target().kind() == Kind.METHOD) {
                 MethodInfo method = templateExtension.target().asMethod();
                 extensionMethodGenerator.generate(method);
