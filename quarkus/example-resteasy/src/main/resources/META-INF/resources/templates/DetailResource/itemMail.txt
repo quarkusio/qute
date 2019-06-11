@@ -1,0 +1,5 @@
+Item Detail - {name}
+--------------------
+
+Price: {price}
+Discounted Price: {discountedPrice}
