@@ -162,6 +162,13 @@ class Parser {
         String content = buffer.toString();
 
         if (content.charAt(0) == Tag.SECTION.getCommand()) {
+
+            boolean isEmptySection = false;
+            if (content.charAt(content.length() - 1) == Tag.SECTION_END.command) {
+                content = content.substring(0, content.length() - 1);
+                isEmptySection = true;
+            }
+
             Iterator<String> iter = splitSectionParams(content);
             if (!iter.hasNext()) {
                 throw new IllegalStateException("No helper name");
@@ -174,9 +181,17 @@ class Parser {
             }
             paramsStack.addFirst(factory.getParameters());
             // TODO main constant
-            sectionBlockStack.addFirst(SectionBlock.builder("main").setLabel("main"));
+            SectionBlock.Builder mainBlock = SectionBlock.builder("main").setLabel("main");
+            sectionBlockStack.addFirst(mainBlock);
             processParams("main", iter);
-            sectionStack.addFirst(SectionNode.builder().setEngine(engine).setHelperFactory(factory));
+            SectionNode.Builder sectionNode = SectionNode.builder().setEngine(engine).setHelperFactory(factory);
+
+            if (isEmptySection) {
+                sectionNode.addBlock(mainBlock.build());
+                sectionBlockStack.peek().addNode(sectionNode.build());
+            } else {
+                sectionStack.addFirst(sectionNode);
+            }
 
         } else if (content.charAt(0) == Tag.SECTION_BLOCK.getCommand()) {
             if (!ignoreContent) {

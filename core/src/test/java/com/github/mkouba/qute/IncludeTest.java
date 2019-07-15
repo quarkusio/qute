@@ -48,7 +48,7 @@ public class IncludeTest {
         data.put("price", "100");
         engine.putTemplate("detail", engine.parse("<strong>{name}</strong>:{price}"));
         assertEquals("<strong>Al</strong>:100",
-                engine.parse("{#include detail}{/include}").render(data));
+                engine.parse("{#include detail/}").render(data));
     }
 
 }

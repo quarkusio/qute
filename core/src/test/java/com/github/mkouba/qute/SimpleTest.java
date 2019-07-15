@@ -2,6 +2,7 @@ package com.github.mkouba.qute;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -98,6 +99,14 @@ public class SimpleTest {
     public void testComment() {
         assertEquals("OK",
                 Engine.builder().build().parse("{! This is my comment}OK").render(null));
+    }
+
+    @Test
+    public void testEmptySectionTag() {
+        assertEquals("",
+                Engine.builder().addValueResolver(ValueResolvers.thisResolver())
+                        .addSectionHelper(new IfSectionHelper.Factory()).build().parse("{#if true /}")
+                        .render(Collections.emptyList()));
     }
 
 }
