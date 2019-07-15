@@ -43,6 +43,7 @@ This locator is used whenever the `Engine.getTemplate()` method is called and th
 == Building Blocks
 
 Dynamic parts of a template include:
+
 - expression tags: `{foo}`
 - section tags: `{#if foo} Foo is true {/if}`; the name in the closing tag is optional: `{#if foo} Foo is true {/}`
 
