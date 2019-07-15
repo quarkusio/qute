@@ -26,7 +26,7 @@ public class SimpleTest {
                 .addSectionHelper("for", new LoopSectionHelper.Factory()).addValueResolver(ValueResolvers.mapResolver())
                 .build();
 
-        Template template = engine.parse("{#if test}Hello {name}!{/if}\n\n{#for item in list}{item:name}{/for}");
+        Template template = engine.parse("{#if test}Hello {name}!{/}\n\n{#for item in list}{item:name}{/}");
         assertEquals("Hello world!\n\nLu", template.render(data));
     }
 
@@ -85,7 +85,7 @@ public class SimpleTest {
                 .build();
         Map<String, Object> data = new HashMap<>();
         data.put("surname", "Bug");
-        assertEquals("OK", engine.parse("{#if this.get('name') is null}OK{/if}").render(data));
+        assertEquals("OK", engine.parse("{#if this.get('name') is null}OK{/}").render(data));
     }
 
     @Test

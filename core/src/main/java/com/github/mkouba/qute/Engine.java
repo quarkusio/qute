@@ -2,6 +2,7 @@ package com.github.mkouba.qute;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Predicate;
 
 /**
  * Template engine configuration.
@@ -39,5 +40,17 @@ public interface Engine {
      * @see EngineBuilder#addLocator(java.util.function.Function)
      */
     public Template getTemplate(String id);
+    
+    /**
+     * Removes all templates from the cache.
+     */
+    public void clearTemplates();
+    
+    /**
+     * Removes the templates for which the mapping id matches the given predicate.
+     * 
+     * @param test
+     */
+    public void removeTemplates(Predicate<String> test);
 
 }

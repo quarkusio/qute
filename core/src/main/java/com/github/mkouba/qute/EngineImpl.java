@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
+import java.util.function.Predicate;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -63,6 +64,16 @@ class EngineImpl implements Engine {
 
     public Template getTemplate(String id) {
         return templates.computeIfAbsent(id, this::load);
+    }
+    
+    @Override
+    public void clearTemplates() {
+        templates.clear();
+    }
+    
+    @Override
+    public void removeTemplates(Predicate<String> test) {
+        templates.keySet().removeIf(test);
     }
 
     private Template load(String id) {

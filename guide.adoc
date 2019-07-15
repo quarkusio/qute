@@ -17,7 +17,7 @@ Engine engine = Engine.builder().addDefaultValueResolvers().addDefaultSectionHel
 
 `Engine` represents a central point for template management.
 It has a dedicated configuration and a template cache.
-Now, it's possible to parse a template and render our first "hello world":
+It's possible to parse a template and render our first "hello world":
 
 [source,java]
 ----
@@ -42,7 +42,10 @@ This locator is used whenever the `Engine.getTemplate()` method is called and th
 
 == Building Blocks
 
-Dynamic parts of a template include expression tags - `{foo}`, and section tags - `{#if foo}{/foo}`.
+Dynamic parts of a template include:
+- expression tags: `{foo}`
+- section tags: `{#if foo} Foo is true {/if}`; the name in the closing tag is optional: `{#if foo} Foo is true {/}`
+
 An expression tag whose content starts with `!` is a comment and is ignored.
 
 === Expressions
@@ -273,7 +276,7 @@ If you want to use Qute in your Quarkus application add the following dependency
 ----
 
 An `Engine` instance is automatically configured.
-Moreover, it's possible to inject a template located in `META-INF/resources`: 
+Moreover, it's possible to inject a template located in the `META-INF/resources/` directory: 
 
 [source,java]
 ----
@@ -358,9 +361,8 @@ Any instance of `Item` can be used directly in the template:
 === Dev Mode
 
 All injected templates are watched for changes.
-A modification results in an application restart.
-
-NOTE: Once https://github.com/quarkusio/quarkus/issues/2704 is resolved we do plan to re-create the modified template without the need for restart.
+When a template is modified it is removed from the cache and the template source is parsed again.
+There is no need to restart the whole app while modifying templates only.
 
 == Extension Points
 

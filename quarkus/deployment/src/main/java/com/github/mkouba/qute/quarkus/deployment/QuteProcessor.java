@@ -25,7 +25,7 @@ import com.github.mkouba.qute.Template;
 import com.github.mkouba.qute.generator.ExtensionMethodGenerator;
 import com.github.mkouba.qute.generator.ValueResolverGenerator;
 import com.github.mkouba.qute.quarkus.TemplatePath;
-import com.github.mkouba.qute.quarkus.runtime.QuteTemplate;
+import com.github.mkouba.qute.quarkus.runtime.QuteRecorder;
 import com.github.mkouba.qute.quarkus.runtime.TemplateProducer;
 
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
@@ -46,7 +46,7 @@ public class QuteProcessor {
     private static final Logger LOGGER = LoggerFactory.getLogger(QuteProcessor.class);
 
     static final DotName TEMPLATE_PATH = DotName.createSimple(TemplatePath.class.getName());
-    
+
     @BuildStep
     void generateValueResolvers(BuildProducer<GeneratedClassBuildItem> generatedClass,
             BeanArchiveIndexBuildItem beanArchiveIndex, ApplicationArchivesBuildItem applicationArchivesBuildItem,
@@ -141,7 +141,7 @@ public class QuteProcessor {
                         ignoreValue = AnnotationValue.createArrayValue("ignore", new AnnotationValue[] {});
                     }
                     AnnotationValue propertiesValue = templateData.value("properties");
-                    if (propertiesValue == null || propertiesValue.equals(v.value("properteis"))) {
+                    if (propertiesValue == null || propertiesValue.equals(v.value("properties"))) {
                         propertiesValue = AnnotationValue.createBooleanValue("properties", false);
                     }
                     return AnnotationInstance.create(templateData.name(), templateData.target(),
@@ -161,20 +161,25 @@ public class QuteProcessor {
             AnnotationValue pathValue = templatePath.value();
             if (pathValue != null && !pathValue.asString().isEmpty()) {
                 templatePaths.add(pathValue.asString());
+            } else if (templatePath.target().kind() == Kind.FIELD) {
+                String path = templatePath.target().asField().name();
+                templatePaths.add(path);
+                templatePaths.add(path + ".html");
             }
         }
         for (String path : templatePaths) {
             if (path.isEmpty()) {
                 continue;
             }
+            LOGGER.debug("Watching template path: {}", path);
             paths.produce(new TemplatePathBuildItem(path));
-            hotDeploymentFiles.produce(new HotDeploymentWatchedFileBuildItem("META-INF/resources/" + path));
+            hotDeploymentFiles.produce(new HotDeploymentWatchedFileBuildItem("META-INF/resources/" + path, false));
         }
     }
 
     @BuildStep
     @Record(RUNTIME_INIT)
-    void initialize(QuteTemplate template,
+    void initialize(QuteRecorder template,
             List<GeneratedValueResolverBuildItem> generatedValueResolvers, List<TemplatePathBuildItem> templatePaths,
             BeanContainerBuildItem beanContainer,
             List<ServiceStartBuildItem> startedServices) {

@@ -10,7 +10,10 @@ import java.lang.annotation.Target;
  * A value resolver is automatically generated for template extension methods.
  * 
  * The method must be static, must not return {@code void} and must accept at least one parameter. The class of the first
- * parameter is used to match the base object. The method name is used to match the property name.
+ * parameter is used to match the base object. 
+ * 
+ * 
+ * The method name is used to match the property name.
  * 
  * <pre>
  * {@literal @}TemplateExtension

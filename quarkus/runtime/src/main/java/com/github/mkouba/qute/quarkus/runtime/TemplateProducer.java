@@ -41,16 +41,18 @@ import io.quarkus.arc.InstanceHandle;
 public class TemplateProducer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TemplateProducer.class);
+    
+    static final String METAINF_RESOURCES = "META-INF/resources/";
 
     @Inject
     Event<EngineBuilder> event;
 
     private Engine engine;
 
-    void init(List<String> resolverClasses, List<String> templatePaths) {
+    Engine init(List<String> resolverClasses, List<String> templatePaths) {
         if (engine != null) {
             LOGGER.warn("Qute already initialized!");
-            return;
+            return engine;
         }
         LOGGER.debug("Initializing Qute with: {}", resolverClasses);
         EngineBuilder builder = Engine.builder()
@@ -78,6 +80,7 @@ public class TemplateProducer {
         for (String path : templatePaths) {
             engine.getTemplate(path);
         }
+        return engine;
     }
 
     ValueResolver createResolver(String resolverClassName) {
@@ -106,10 +109,11 @@ public class TemplateProducer {
         if (path == null) {
             throw new IllegalStateException();
         }
+        // Note that engine may not be initialized and so we inject a delegating template
         if (path.value().isEmpty()) {
+            // For "@Inject Template items" use "items"
             return new InjectableTemplate(this::getEngine, injectionPoint.getMember().getName());
         } else {
-            // Note that engine may not be initialized and so we inject a delegating template 
             return new InjectableTemplate(this::getEngine, path.value());
         }
     }
@@ -120,11 +124,22 @@ public class TemplateProducer {
         return engine;
     }
 
+    /**
+     * For any path we try to find the following resources:
+     * 
+     * <ol>
+     * <li>META-INF/resources/path</li>
+     * <li>META-INF/resources/path.html</li>
+     * </ol>
+     * 
+     * @param path
+     * @return the optional reader
+     */
     private Optional<Reader> locate(String path) {
         // Try {path} and {path}.html
-        InputStream in = locatePath("META-INF/resources/" + path);
+        InputStream in = locatePath(METAINF_RESOURCES + path);
         if (in == null) {
-            in = locatePath("META-INF/resources/" + path + ".html");
+            in = locatePath(METAINF_RESOURCES + path + ".html");
         }
         if (in != null) {
             return Optional.of(new InputStreamReader(in, Charset.forName("utf-8")));
