@@ -14,9 +14,9 @@ public class QuteRecorder {
 
     static volatile Engine engine;
 
-    public void start(BeanContainer container, List<String> resolverClasses, List<String> templatePaths) {
+    public void start(BeanContainer container, List<String> resolverClasses, List<String> templatePaths, List<String> tags) {
         TemplateProducer templateProducer = container.instance(TemplateProducer.class);
-        engine = templateProducer.init(resolverClasses, templatePaths);
+        engine = templateProducer.init(resolverClasses, templatePaths, tags);
     }
 
     public static void clearTemplates(Set<String> paths) {

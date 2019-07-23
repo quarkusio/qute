@@ -58,10 +58,12 @@ class EvaluatorImpl implements Evaluator {
         if (resolutionContext == null) {
             return null;
         }
-        for (NamespaceResolver resolver : resolutionContext.getNamespaceResolvers()) {
-            if (resolver.getNamespace().equals(namespace)) {
-                return resolver;
-            }
+        if (resolutionContext.getNamespaceResolvers() != null) {
+            for (NamespaceResolver resolver : resolutionContext.getNamespaceResolvers()) {
+                if (resolver.getNamespace().equals(namespace)) {
+                    return resolver;
+                }
+            }    
         }
         return findNamespaceResolver(namespace, resolutionContext.getParent());
     }

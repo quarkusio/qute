@@ -36,7 +36,6 @@ public class ItemsResource {
 
         Map<String, Object> data = new HashMap<>();
         data.put("items", dummyItems());
-        data.put("limit", BigDecimal.valueOf(800));
         exchange.ok(items.render(data));
     }
 

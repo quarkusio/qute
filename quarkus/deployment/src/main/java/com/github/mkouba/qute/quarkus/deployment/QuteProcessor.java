@@ -2,8 +2,12 @@ package com.github.mkouba.qute.quarkus.deployment;
 
 import static io.quarkus.deployment.annotations.ExecutionTime.RUNTIME_INIT;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -32,6 +36,7 @@ import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
 import io.quarkus.arc.deployment.BeanArchiveIndexBuildItem;
 import io.quarkus.arc.deployment.BeanContainerBuildItem;
 import io.quarkus.arc.processor.DotNames;
+import io.quarkus.deployment.ApplicationArchive;
 import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.annotations.Record;
@@ -154,25 +159,49 @@ public class QuteProcessor {
     }
 
     @BuildStep
-    void collectTemplatePaths(BeanArchiveIndexBuildItem beanArchiveIndex,
-            BuildProducer<HotDeploymentWatchedFileBuildItem> hotDeploymentFiles, BuildProducer<TemplatePathBuildItem> paths) {
-        Set<String> templatePaths = new HashSet<>();
+    void collectTemplatePaths(ApplicationArchivesBuildItem applicationArchivesBuildItem,
+            BeanArchiveIndexBuildItem beanArchiveIndex,
+            BuildProducer<HotDeploymentWatchedFileBuildItem> hotDeploymentFiles, BuildProducer<TemplatePathBuildItem> paths)
+            throws IOException {
+        Set<String> watchedPaths = new HashSet<>();
+
+        // Injected templates
         for (AnnotationInstance templatePath : beanArchiveIndex.getIndex().getAnnotations(TEMPLATE_PATH)) {
             AnnotationValue pathValue = templatePath.value();
             if (pathValue != null && !pathValue.asString().isEmpty()) {
-                templatePaths.add(pathValue.asString());
+                watchedPaths.add(pathValue.asString());
+                paths.produce(new TemplatePathBuildItem(pathValue.asString()));
             } else if (templatePath.target().kind() == Kind.FIELD) {
                 String path = templatePath.target().asField().name();
-                templatePaths.add(path);
-                templatePaths.add(path + ".html");
+                watchedPaths.add(path);
+                paths.produce(new TemplatePathBuildItem(path));
+                watchedPaths.add(path + ".html");
+                paths.produce(new TemplatePathBuildItem(path + ".html"));
             }
         }
-        for (String path : templatePaths) {
+
+        // Tags
+        ApplicationArchive applicationArchive = applicationArchivesBuildItem.getRootArchive();
+        // If we have properties file we may have to care about
+        Path metaInfPath = applicationArchive.getChildPath("META-INF/resources/tags");
+        if (metaInfPath != null) {
+            Iterator<Path> tagFiles = Files.list(metaInfPath)
+                    .filter(Files::isRegularFile)
+                    .iterator();
+            while (tagFiles.hasNext()) {
+                Path path = tagFiles.next();
+                String tagPath = path.getFileName().toString();
+                LOGGER.info("Found tag: " + path);
+                watchedPaths.add("tags/" + tagPath);
+                paths.produce(new TemplatePathBuildItem(tagPath, true));
+            }
+        }
+
+        for (String path : watchedPaths) {
             if (path.isEmpty()) {
                 continue;
             }
             LOGGER.debug("Watching template path: {}", path);
-            paths.produce(new TemplatePathBuildItem(path));
             hotDeploymentFiles.produce(new HotDeploymentWatchedFileBuildItem("META-INF/resources/" + path, false));
         }
     }
@@ -185,7 +214,10 @@ public class QuteProcessor {
             List<ServiceStartBuildItem> startedServices) {
         template.start(beanContainer.getValue(), generatedValueResolvers.stream()
                 .map(GeneratedValueResolverBuildItem::getClassName).collect(Collectors.toList()),
-                templatePaths.stream().map(TemplatePathBuildItem::getPath).collect(Collectors.toList()));
+                templatePaths.stream().filter(TemplatePathBuildItem::isRegular).map(TemplatePathBuildItem::getPath)
+                        .collect(Collectors.toList()),
+                templatePaths.stream().filter(TemplatePathBuildItem::isTag).map(TemplatePathBuildItem::getPath)
+                        .collect(Collectors.toList()));
     }
 
     @BuildStep

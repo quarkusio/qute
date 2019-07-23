@@ -1,0 +1,8 @@
+<li>
+<strong>{it.name.toUpperCase ?: "NO NAME"}</strong>:
+{#if it.price > limit} 
+   {it.discountedPrice.scaled(0)} (<s>{it.price}</s>)
+{:else}
+   {it.price}
+{/if}
+</li>

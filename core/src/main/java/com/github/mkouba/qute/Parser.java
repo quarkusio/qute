@@ -188,6 +188,11 @@ class Parser {
 
             if (isEmptySection) {
                 sectionNode.addBlock(mainBlock.build());
+                // Remove params from the stack
+                paramsStack.pop();
+                // Remove the block from the stack
+                sectionBlockStack.pop();
+                // Add node to the parent block
                 sectionBlockStack.peek().addNode(sectionNode.build());
             } else {
                 sectionStack.addFirst(sectionNode);
@@ -241,7 +246,7 @@ class Parser {
             paramValues.add(iter.next());
         }
         if (paramValues.size() > factoryParams.size()) {
-            LOGGER.warn("Too many params [label={}, params={}, factoryParams={}]", label, params, factoryParams);
+            LOGGER.debug("Too many params [label={}, params={}, factoryParams={}]", label, params, factoryParams);
         }
         if (paramValues.size() < factoryParams.size()) {
             for (String param : paramValues) {

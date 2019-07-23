@@ -15,12 +15,7 @@ body {
     <p>We have found {items.size} items.</p>
     <ol>
     {#each items}
-        <li><strong>{name.toUpperCase ?: "NO NAME"}</strong>:
-        {#if price > data:limit} 
-          {discountedPrice.scaled(0)} (<s>{price}</s>)
-        {:else}
-          {price}
-        {/if}</li>
+        {#item this limit=800 /}
     {/each}
     </ol>
 </body>

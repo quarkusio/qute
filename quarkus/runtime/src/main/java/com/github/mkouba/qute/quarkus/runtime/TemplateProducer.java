@@ -30,6 +30,7 @@ import com.github.mkouba.qute.LoopSectionHelper;
 import com.github.mkouba.qute.NamespaceResolver;
 import com.github.mkouba.qute.Results.Result;
 import com.github.mkouba.qute.Template;
+import com.github.mkouba.qute.UserTagSectionHelper;
 import com.github.mkouba.qute.ValueResolver;
 import com.github.mkouba.qute.WithSectionHelper;
 import com.github.mkouba.qute.quarkus.TemplatePath;
@@ -41,15 +42,17 @@ import io.quarkus.arc.InstanceHandle;
 public class TemplateProducer {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(TemplateProducer.class);
-    
+
     static final String METAINF_RESOURCES = "META-INF/resources/";
+    static final String TAG_RESOURCES = METAINF_RESOURCES + "tags/";
 
     @Inject
     Event<EngineBuilder> event;
 
     private Engine engine;
+    private List<String> tags;
 
-    Engine init(List<String> resolverClasses, List<String> templatePaths) {
+    Engine init(List<String> resolverClasses, List<String> templatePaths, List<String> tags) {
         if (engine != null) {
             LOGGER.warn("Qute already initialized!");
             return engine;
@@ -71,6 +74,14 @@ public class TemplateProducer {
         for (String resolverClass : resolverClasses) {
             builder.addValueResolver(createResolver(resolverClass));
             LOGGER.debug("Added generated value resolver: {}", resolverClass);
+        }
+        // Add tags
+        this.tags = tags;
+        for (String tag : tags) {
+            // Strip suffix, item.html -> item
+            String tagName = tag.contains(".") ? tag.substring(0, tag.lastIndexOf('.')) : tag;
+            LOGGER.debug("Registered UserTagSectionHelper for {}", tagName);
+            builder.addSectionHelper(new UserTagSectionHelper.Factory(tagName));
         }
         // Add locator
         builder.addLocator(this::locate);
@@ -136,11 +147,22 @@ public class TemplateProducer {
      * @return the optional reader
      */
     private Optional<Reader> locate(String path) {
-        // Try {path} and {path}.html
-        InputStream in = locatePath(METAINF_RESOURCES + path);
-        if (in == null) {
-            in = locatePath(METAINF_RESOURCES + path + ".html");
+        InputStream in = null;
+        // First try to locate a tag template
+        if (tags.stream().anyMatch(tag -> tag.startsWith(path))) {
+            in = locatePath(TAG_RESOURCES + path);
+            if (in == null) {
+                in = locatePath(TAG_RESOURCES + path + ".html");
+            }
         }
+        if (in == null) {
+            // Try {path} and {path}.html
+            in = locatePath(METAINF_RESOURCES + path);
+            if (in == null) {
+                in = locatePath(METAINF_RESOURCES + path + ".html");
+            }
+        }
+
         if (in != null) {
             return Optional.of(new InputStreamReader(in, Charset.forName("utf-8")));
         }
