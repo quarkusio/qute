@@ -264,6 +264,41 @@ These sections can be used to include another template and possibly override som
 
 NOTE: Section blocks can also define an optional end tag - `{/title}`.
 
+[[user_tags]]
+===== User-defined Tags
+
+User-defined tags can be used to include a template and optionally pass some parameters.
+Let's suppose we have a template called `item.html`:
+
+[source,html]
+----
+{#if showImage} <1>
+  {it.image} <2>
+{/if}
+----
+<1> `showImage` is a named parameter.
+<2> `it` is a special key that is replaced with the first unnamed param.
+
+Now if we register this template under the `item` id and if we add a `UserTagSectionHelper` to the engine:
+
+[source,java]
+----
+Engine engine = Engine.builder().addSectionHelper(new UserTagSectionHelper.Factory("item"))
+                .build();
+----
+
+NOTE: In Quarkus, all files from the `META-INF/resources/tags` are registered and monitored automatically.
+
+We can include the tag like this:
+
+[source,html]
+----
+{#each items}
+ {#item this showImage=true /} <1>
+{/each}
+----
+<1> `this` is resolved to an iteration element and can be referenced using the `it` key in the tag template.
+
 == Quarkus Integration
 
 If you want to use Qute in your Quarkus application add the following dependency to your project:
@@ -276,7 +311,7 @@ If you want to use Qute in your Quarkus application add the following dependency
 </dependency>
 ----
 
-An `Engine` instance is automatically configured.
+An `Engine` instance is automatically configured and a bean is also registered.
 Moreover, it's possible to inject a template located in the `META-INF/resources/` directory: 
 
 [source,java]
@@ -286,6 +321,9 @@ class MyBean {
   @TemplatePath <1>
   Template items; <2>
   
+  @Inject
+  Engine engine; <3>
+  
   void doSomething() {
     System.out.println(items.render(data));
   }
@@ -293,6 +331,7 @@ class MyBean {
 ----
 <1> This qualifier instructs the container to inject an instance of a template.
 <2> If there is no `TemplatePath#value()` provided the field name is used to locate the template. In this particular case, the container will attempt to locate a template with path `META-INF/resources/items.html`.
+<3> Inject the configured `Engine` instance
 
 === Template extension methods
 
@@ -361,7 +400,7 @@ Any instance of `Item` can be used directly in the template:
 
 === Dev Mode
 
-All injected templates are watched for changes.
+All user-defined tags in `META-INF/resources/tags`, all files in `META-INF/resources/templates` and all injected templates are watched for changes.
 When a template is modified it is removed from the cache and the template source is parsed again.
 There is no need to restart the whole app while modifying templates only.
 
