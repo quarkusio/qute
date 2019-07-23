@@ -4,6 +4,7 @@ import static org.objectweb.asm.Opcodes.ACC_PUBLIC;
 
 import java.lang.reflect.Modifier;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -77,7 +78,7 @@ public class ValueResolverGenerator {
         this.generatedTypes = new HashSet<>();
         this.classOutput = classOutput;
         this.index = index;
-        this.uncontrolled = uncontrolled;
+        this.uncontrolled = uncontrolled != null ? uncontrolled : Collections.emptyMap();
     }
 
     public Set<String> getGeneratedTypes() {
