@@ -161,39 +161,55 @@ public class QuteProcessor {
     @BuildStep
     void collectTemplatePaths(ApplicationArchivesBuildItem applicationArchivesBuildItem,
             BeanArchiveIndexBuildItem beanArchiveIndex,
-            BuildProducer<HotDeploymentWatchedFileBuildItem> hotDeploymentFiles, BuildProducer<TemplatePathBuildItem> paths)
+            BuildProducer<HotDeploymentWatchedFileBuildItem> hotDeploymentFiles,
+            BuildProducer<TemplatePathBuildItem> templatePaths)
             throws IOException {
         Set<String> watchedPaths = new HashSet<>();
 
         // Injected templates
         for (AnnotationInstance templatePath : beanArchiveIndex.getIndex().getAnnotations(TEMPLATE_PATH)) {
             AnnotationValue pathValue = templatePath.value();
+            LOGGER.debug("Found {} declared on {}", templatePath, templatePath.target());
             if (pathValue != null && !pathValue.asString().isEmpty()) {
                 watchedPaths.add(pathValue.asString());
-                paths.produce(new TemplatePathBuildItem(pathValue.asString()));
+                templatePaths.produce(new TemplatePathBuildItem(pathValue.asString()));
             } else if (templatePath.target().kind() == Kind.FIELD) {
                 String path = templatePath.target().asField().name();
                 watchedPaths.add(path);
-                paths.produce(new TemplatePathBuildItem(path));
+                templatePaths.produce(new TemplatePathBuildItem(path));
                 watchedPaths.add(path + ".html");
-                paths.produce(new TemplatePathBuildItem(path + ".html"));
+                templatePaths.produce(new TemplatePathBuildItem(path + ".html"));
             }
         }
 
-        // Tags
         ApplicationArchive applicationArchive = applicationArchivesBuildItem.getRootArchive();
-        // If we have properties file we may have to care about
-        Path metaInfPath = applicationArchive.getChildPath("META-INF/resources/tags");
-        if (metaInfPath != null) {
-            Iterator<Path> tagFiles = Files.list(metaInfPath)
+
+        Path templatesPath = applicationArchive.getChildPath("META-INF/resources/templates");
+        if (templatesPath != null) {
+            Iterator<Path> templateFiles = Files.list(templatesPath)
+                    .filter(Files::isRegularFile)
+                    .iterator();
+            while (templateFiles.hasNext()) {
+                Path path = templateFiles.next();
+                LOGGER.debug("Found template: {}", path);
+                String templatePath = path.getFileName().toString();
+                if (watchedPaths.add("templates/" + templatePath)) {
+                    templatePaths.produce(new TemplatePathBuildItem(templatePath));
+                }
+            }
+        }
+
+        Path tagsPath = applicationArchive.getChildPath("META-INF/resources/tags");
+        if (tagsPath != null) {
+            Iterator<Path> tagFiles = Files.list(tagsPath)
                     .filter(Files::isRegularFile)
                     .iterator();
             while (tagFiles.hasNext()) {
                 Path path = tagFiles.next();
                 String tagPath = path.getFileName().toString();
-                LOGGER.info("Found tag: " + path);
+                LOGGER.debug("Found tag: {}", path);
                 watchedPaths.add("tags/" + tagPath);
-                paths.produce(new TemplatePathBuildItem(tagPath, true));
+                templatePaths.produce(new TemplatePathBuildItem(tagPath, true));
             }
         }
 

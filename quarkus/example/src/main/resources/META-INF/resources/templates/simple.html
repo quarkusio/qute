@@ -11,7 +11,7 @@ body {
 </head>
 
 <body>
-    This is not {this.contains('foo')}!
+    This is not {#if this.contains('foo')}TRUE{:else}FALSE{/if}!
 </body>
 
 </html>

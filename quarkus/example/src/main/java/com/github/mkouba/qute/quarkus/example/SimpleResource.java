@@ -7,9 +7,9 @@ import java.util.Collections;
 import java.util.stream.Collectors;
 
 import javax.enterprise.event.Observes;
+import javax.inject.Inject;
 
-import com.github.mkouba.qute.Template;
-import com.github.mkouba.qute.quarkus.TemplatePath;
+import com.github.mkouba.qute.Engine;
 
 import io.quarkus.vertx.web.Route;
 import io.quarkus.vertx.web.RoutingExchange;
@@ -17,12 +17,12 @@ import io.vertx.ext.web.Router;
 
 public class SimpleResource {
 
-    @TemplatePath
-    Template simple;
+    @Inject
+    Engine engine;
 
     @Route(path = "/simple", methods = GET, produces = "text/html")
     public void simple(RoutingExchange exchange) {
-        exchange.ok(simple.render(Collections.singletonList("foo")));
+        exchange.ok(engine.getTemplate("templates/simple.html").render(Collections.singletonList("foo")));
     }
 
     void addErrorHandler(@Observes Router router) {
