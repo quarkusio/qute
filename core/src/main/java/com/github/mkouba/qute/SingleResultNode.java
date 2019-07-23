@@ -15,7 +15,9 @@ public class SingleResultNode implements ResultNode {
 
     @Override
     public void process(Consumer<String> consumer) {
-        consumer.accept(value.toString());
+        if (value != null) {
+            consumer.accept(value.toString());
+        }
     }
 
 }
