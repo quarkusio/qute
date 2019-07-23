@@ -51,15 +51,15 @@ An expression tag whose content starts with `!` is a comment and is ignored.
 
 === Expressions
 
-An expression consists of an optional namespace followed by `:` and several parts separated by `.`.
+An expression consists of an optional namespace followed by a colon `:` and parts separated by a dot `.`.
 The first part of the expression is always resolved against the <<current_context_object, current context object>>.
 For an expression that starts with a namespace the current context object is found using the available `NamespaceResolver`s.
 For an expression that does not start with a namespace the current context object is derived from the position of the tag.
 All other parts are resolved using `ValueResolver`s against the result of the previous resolution.
 
-For example, expression `{name}` has no namespace and a single part - "name".
-"name" will be resolved using all available `ValueResolver` s against the current context object.
-However, the expression `{global:colors}` has "global" namespace and a single part - "colors".
+For example, expression `{name}` has no namespace and single part - "name".
+The "name" will be resolved using all available `ValueResolver` s against the current context object.
+However, the expression `{global:colors}` has "global" namespace and single part - "colors".
 First, all available `NamespaceResolver` s will be used to find the current context object.
 And afterwards `ValueResolver` s will be used to resolve "colors" against the context object found. 
 
@@ -100,10 +100,10 @@ A typical example is each/for loop - during iteration the content of the section
 
 === Sections
 
-A section has a start tag - content starts with `#`, followed with the name of the secion such as `{#if}`, and an end tag - content starts with `/` and contains the name of the section `{/if}`.
+A section has a start tag - content starts with `#`, followed with the name of the secion such as `{#if}`, and an end tag - content starts with `/` and contains the optional name of the section `{/if}`.
 The start tag can also define parameters.
-A section contains one or more section blocks. 
-The main block is always present.
+A section contains one or more section *blocks*. 
+The "main" block is always present.
 Additional blocks start with a label and can also have parameters - `{:else if item.isActive}`.
 A section helper that defines the logic of a section can "execute" any of the blocks and evaluate the parameters.
 
