@@ -1,12 +1,11 @@
 package com.github.mkouba.qute;
 
-import java.util.HashMap;
+import static com.github.mkouba.qute.Futures.evaluateParams;
+
 import java.util.List;
 import java.util.Map;
-import java.util.Map.Entry;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -25,28 +24,12 @@ public class UserTagSectionHelper implements SectionHelper {
     @Override
     public CompletionStage<ResultNode> resolve(SectionResolutionContext context) {
         CompletableFuture<ResultNode> result = new CompletableFuture<>();
-
-        @SuppressWarnings("unchecked")
-        CompletableFuture<Object>[] paramResults = new CompletableFuture[parameters.size()];
-        int idx = 0;
-        for (Entry<String, Expression> entry : parameters.entrySet()) {
-            paramResults[idx++] = context.resolutionContext().evaluate(entry.getValue()).toCompletableFuture();
-        }
-        CompletableFuture.allOf(paramResults).whenComplete((v, t1) -> {
-            if (t1 != null) {
-                result.completeExceptionally(t1);
+        evaluateParams(parameters, context.resolutionContext()).whenComplete((r, t) -> {
+            if (t != null) {
+                result.completeExceptionally(t);
             } else {
-                // Build a map from the params
-                Map<String, Object> paramValues = new HashMap<>();
-                int j = 0;
-                try {
-                    for (Entry<String, Expression> entry : parameters.entrySet()) {
-                        paramValues.put(entry.getKey(), paramResults[j++].get());
-                    }
-                } catch (InterruptedException | ExecutionException e) {
-                    throw new IllegalStateException(e);
-                }
-                ((TemplateImpl) templateSupplier.get()).root.resolve(context.resolutionContext().createChild(paramValues, null))
+                // Execute the template with the params as the root context object
+                ((TemplateImpl) templateSupplier.get()).root.resolve(context.resolutionContext().createChild(r, null))
                         .whenComplete((resultNode, t2) -> {
                             if (t2 != null) {
                                 result.completeExceptionally(t2);
