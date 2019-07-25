@@ -44,17 +44,19 @@ This locator is used whenever the `Engine.getTemplate()` method is called and th
 
 Dynamic parts of a template include:
 
-- expression tags: `{foo}`
-- section tags: `{#if foo} Foo is true {/if}`; the name in the closing tag is optional: `{#if foo} Foo is true {/}`
+* expression: `{foo}`, `{item.get(name)}`, `{global:colors}`, `{name ?: 'John'}`
+* sections: `{#if foo} Foo is true {/if}`
+** the name in the closing tag is optional: `{#if foo} Foo is true {/}`
+** a section can be empty: `{#userTag image=true /}`
 
-An expression tag whose content starts with `!` is a comment and is ignored.
+An expression whose content starts with `!` is a comment and is ignored.
 
 === Expressions
 
 An expression consists of an optional namespace followed by a colon `:` and parts separated by a dot `.`.
 The first part of the expression is always resolved against the <<current_context_object, current context object>>.
 For an expression that starts with a namespace the current context object is found using the available `NamespaceResolver`s.
-For an expression that does not start with a namespace the current context object is derived from the position of the tag.
+For an expression that does not start with a namespace the current context object is *derived from the position* of the tag.
 All other parts are resolved using `ValueResolver`s against the result of the previous resolution.
 
 For example, expression `{name}` has no namespace and single part - "name".
