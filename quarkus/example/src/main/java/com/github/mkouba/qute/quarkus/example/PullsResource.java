@@ -30,7 +30,7 @@ public class PullsResource {
         exchange.response().setChunked(true);
         Map<String, Object> data = new HashMap<>();
         data.put("generatedTime", LocalDateTime.now());
-        pulls.render(data, exchange.response()::write)
+        pulls.render().setData(data).consume(exchange.response()::write)
                 .whenComplete((v, t) -> {
                     if (t == null) {
                         exchange.ok().end();

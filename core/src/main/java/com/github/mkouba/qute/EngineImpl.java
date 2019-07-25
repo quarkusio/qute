@@ -4,12 +4,16 @@ import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.ServiceLoader;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Collectors;
+import java.util.stream.StreamSupport;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,6 +31,7 @@ class EngineImpl implements Engine {
     private final Evaluator evaluator;
     private final Map<String, Template> templates;
     private final List<Function<String, Optional<Reader>>> locators;
+    private final PublisherFactory publisherFactory;
 
     EngineImpl(Map<String, SectionHelperFactory<?>> sectionHelperFactories, List<ValueResolver> valueResolvers,
             List<NamespaceResolver> namespaceResolvers, List<Function<String, Optional<Reader>>> locators) {
@@ -36,6 +41,16 @@ class EngineImpl implements Engine {
         this.evaluator = new EvaluatorImpl(this.valueResolvers);
         this.templates = new ConcurrentHashMap<>();
         this.locators = ImmutableList.copyOf(locators);
+        ServiceLoader<PublisherFactory> loader = ServiceLoader.load(PublisherFactory.class);
+        Iterator<PublisherFactory> iterator = loader.iterator();
+        if (iterator.hasNext()) {
+            this.publisherFactory = iterator.next();    
+        } else {
+            this.publisherFactory = null;
+        }
+        if (iterator.hasNext()) {
+            throw new IllegalStateException("Multiple reactive factories found: " + StreamSupport.stream(loader.spliterator(), false).map(Object::getClass).map(Class::getName).collect(Collectors.joining(",")));
+        }
     }
 
     public Template parse(String content) {
@@ -74,6 +89,10 @@ class EngineImpl implements Engine {
     @Override
     public void removeTemplates(Predicate<String> test) {
         templates.keySet().removeIf(test);
+    }
+
+    PublisherFactory getPublisherFactory() {
+        return publisherFactory;
     }
 
     private Template load(String id) {

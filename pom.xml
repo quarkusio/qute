@@ -16,10 +16,14 @@
         <version.junit>5.4.2</version.junit>
         <version.gizmo>1.0.0.Alpha4</version.gizmo>
         <version.quarkus>0.19.1</version.quarkus>
+        <version.reactivestreams>1.0.2</version.reactivestreams>
+        <version.rxjava2>2.2.10</version.rxjava2>
+        <version.smallrye-reactive-streams-operators>1.0.6</version.smallrye-reactive-streams-operators>
     </properties>
 
     <modules>
         <module>core</module>
+        <module>rxjava</module>
         <module>generator</module>
         <module>quarkus</module>
     </modules>
@@ -72,6 +76,21 @@
                 <groupId>io.quarkus.gizmo</groupId>
                 <artifactId>gizmo</artifactId>
                 <version>${version.gizmo}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.reactivestreams</groupId>
+                <artifactId>reactive-streams</artifactId>
+                <version>${version.reactivestreams}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.reactivex.rxjava2</groupId>
+                <artifactId>rxjava</artifactId>
+                <version>${version.rxjava2}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.smallrye.reactive</groupId>
+                <artifactId>smallrye-reactive-streams-operators-1.0</artifactId>
+                <version>${version.smallrye-reactive-streams-operators}</version>
             </dependency>
             <dependency>
                 <groupId>org.slf4j</groupId>

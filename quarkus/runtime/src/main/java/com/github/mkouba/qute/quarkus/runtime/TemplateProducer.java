@@ -30,6 +30,7 @@ import com.github.mkouba.qute.LoopSectionHelper;
 import com.github.mkouba.qute.NamespaceResolver;
 import com.github.mkouba.qute.Results.Result;
 import com.github.mkouba.qute.Template;
+import com.github.mkouba.qute.Template.Rendering;
 import com.github.mkouba.qute.UserTagSectionHelper;
 import com.github.mkouba.qute.ValueResolver;
 import com.github.mkouba.qute.WithSectionHelper;
@@ -186,15 +187,10 @@ public class TemplateProducer {
             this.engine = engine;
             this.path = path;
         }
-
+        
         @Override
-        public String render(Object data) {
-            return delegate().render(data);
-        }
-
-        @Override
-        public CompletionStage<Void> render(Object data, Consumer<String> resultConsumer) {
-            return delegate().render(data, resultConsumer);
+        public Rendering render() {
+            return delegate().render();
         }
 
         Template delegate() {
