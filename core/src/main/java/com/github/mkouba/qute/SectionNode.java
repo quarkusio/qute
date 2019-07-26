@@ -12,8 +12,8 @@ import com.github.mkouba.qute.SectionHelper.SectionResolutionContext;
  */
 class SectionNode implements TemplateNode {
 
-    static Builder builder() {
-        return new Builder();
+    static Builder builder(String helperName) {
+        return new Builder(helperName);
     }
 
     final List<SectionBlock> blocks;
@@ -39,11 +39,13 @@ class SectionNode implements TemplateNode {
 
     static class Builder {
 
+        final String helperName;
         private final List<SectionBlock> blocks;
         private SectionHelperFactory<?> factory;
         private EngineImpl engine;
 
-        public Builder() {
+        public Builder(String helperName) {
+            this.helperName = helperName;
             this.blocks = new ArrayList<>();
         }
 

@@ -44,7 +44,7 @@ class Parser {
         this.buffer = new StringBuilder();
         this.sectionStack = new ArrayDeque<>();
         this.sectionStack
-                .addFirst(SectionNode.builder().setEngine(engine).setHelperFactory(new SectionHelperFactory<SectionHelper>() {
+                .addFirst(SectionNode.builder("root").setEngine(engine).setHelperFactory(new SectionHelperFactory<SectionHelper>() {
                     @Override
                     public SectionHelper initialize(SectionInitContext context) {
                         return new SectionHelper() {
@@ -184,7 +184,7 @@ class Parser {
             SectionBlock.Builder mainBlock = SectionBlock.builder("main").setLabel("main");
             sectionBlockStack.addFirst(mainBlock);
             processParams("main", iter);
-            SectionNode.Builder sectionNode = SectionNode.builder().setEngine(engine).setHelperFactory(factory);
+            SectionNode.Builder sectionNode = SectionNode.builder(helperName).setEngine(engine).setHelperFactory(factory);
 
             if (isEmptySection) {
                 sectionNode.addBlock(mainBlock.build());
@@ -218,7 +218,8 @@ class Parser {
 
         } else if (content.charAt(0) == Tag.SECTION_END.getCommand()) {
             SectionBlock.Builder block = sectionBlockStack.peek();
-            if (block != null && content.substring(1, content.length()).equals(block.getLabel())) {
+            String name = content.substring(1, content.length());
+            if (block != null && name.equals(block.getLabel())) {
                 // Block end
                 SectionNode.Builder section = sectionStack.peek();
                 section.addBlock(sectionBlockStack.pop().build());
@@ -226,6 +227,10 @@ class Parser {
             } else {
                 // Section end
                 SectionNode.Builder section = sectionStack.pop();
+                if (!name.isEmpty() && !section.helperName.equals(name)) {
+                    throw new IllegalStateException(
+                            "Section eng tag does not match the start tag. Start: " + section.helperName + ", end: " + name);
+                }
                 if (!ignoreContent) {
                     section.addBlock(sectionBlockStack.pop().build());
                 }
