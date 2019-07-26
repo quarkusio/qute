@@ -19,6 +19,7 @@
         <module>deployment</module>
         <module>runtime</module>
         <module>example</module>
+        <module>example-resteasy</module>
     </modules>
 
 </project>
