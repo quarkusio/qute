@@ -25,12 +25,14 @@ import org.jboss.jandex.MethodInfo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.mkouba.qute.PublisherFactory;
 import com.github.mkouba.qute.Template;
 import com.github.mkouba.qute.generator.ExtensionMethodGenerator;
 import com.github.mkouba.qute.generator.ValueResolverGenerator;
 import com.github.mkouba.qute.quarkus.Located;
 import com.github.mkouba.qute.quarkus.runtime.QuteRecorder;
 import com.github.mkouba.qute.quarkus.runtime.TemplateProducer;
+import com.github.mkouba.qute.rxjava.RxjavaPublisherFactory;
 
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
 import io.quarkus.arc.deployment.BeanArchiveIndexBuildItem;
@@ -44,6 +46,7 @@ import io.quarkus.deployment.builditem.ApplicationArchivesBuildItem;
 import io.quarkus.deployment.builditem.GeneratedClassBuildItem;
 import io.quarkus.deployment.builditem.HotDeploymentWatchedFileBuildItem;
 import io.quarkus.deployment.builditem.ServiceStartBuildItem;
+import io.quarkus.deployment.builditem.substrate.ServiceProviderBuildItem;
 import io.quarkus.gizmo.ClassOutput;
 
 public class QuteProcessor {
@@ -220,6 +223,11 @@ public class QuteProcessor {
             LOGGER.debug("Watching template path: {}", path);
             hotDeploymentFiles.produce(new HotDeploymentWatchedFileBuildItem("META-INF/resources/" + path, false));
         }
+    }
+    
+    @BuildStep
+    ServiceProviderBuildItem registerPublisherFactory() {
+        return new ServiceProviderBuildItem(PublisherFactory.class.getName(), RxjavaPublisherFactory.class.getName());
     }
 
     @BuildStep

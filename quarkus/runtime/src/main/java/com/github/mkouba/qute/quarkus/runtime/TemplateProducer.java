@@ -7,8 +7,6 @@ import java.lang.annotation.Annotation;
 import java.nio.charset.Charset;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.CompletionStage;
-import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -30,7 +28,6 @@ import com.github.mkouba.qute.LoopSectionHelper;
 import com.github.mkouba.qute.NamespaceResolver;
 import com.github.mkouba.qute.Results.Result;
 import com.github.mkouba.qute.Template;
-import com.github.mkouba.qute.Template.Rendering;
 import com.github.mkouba.qute.UserTagSectionHelper;
 import com.github.mkouba.qute.ValueResolver;
 import com.github.mkouba.qute.WithSectionHelper;
