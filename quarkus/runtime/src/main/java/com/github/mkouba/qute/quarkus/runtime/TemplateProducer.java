@@ -21,16 +21,11 @@ import org.slf4j.LoggerFactory;
 
 import com.github.mkouba.qute.Engine;
 import com.github.mkouba.qute.EngineBuilder;
-import com.github.mkouba.qute.IfSectionHelper;
-import com.github.mkouba.qute.IncludeSectionHelper;
-import com.github.mkouba.qute.InsertSectionHelper;
-import com.github.mkouba.qute.LoopSectionHelper;
 import com.github.mkouba.qute.NamespaceResolver;
 import com.github.mkouba.qute.Results.Result;
 import com.github.mkouba.qute.Template;
 import com.github.mkouba.qute.UserTagSectionHelper;
 import com.github.mkouba.qute.ValueResolver;
-import com.github.mkouba.qute.WithSectionHelper;
 import com.github.mkouba.qute.quarkus.Located;
 
 import io.quarkus.arc.Arc;
@@ -57,8 +52,7 @@ public class TemplateProducer {
         }
         LOGGER.debug("Initializing Qute with: {}", resolverClasses);
         EngineBuilder builder = Engine.builder()
-                .addSectionHelpers(new LoopSectionHelper.Factory(), new IfSectionHelper.Factory(),
-                        new WithSectionHelper.Factory(), new IncludeSectionHelper.Factory(), new InsertSectionHelper.Factory());
+                .addDefaultSectionHelpers().addDefaultValueResolvers();
         // Allow anyone to customize the builder
         event.fire(builder);
         // Resolve @Named beans
@@ -66,8 +60,6 @@ public class TemplateProducer {
             InstanceHandle<Object> bean = Arc.container().instance(ctx.getName());
             return bean.isAvailable() ? bean.get() : Result.NOT_FOUND;
         }).build());
-        // Basic value resolvers
-        builder.addDefaultValueResolvers();
         // Add generated resolvers
         for (String resolverClass : resolverClasses) {
             builder.addValueResolver(createResolver(resolverClass));
@@ -184,7 +176,7 @@ public class TemplateProducer {
             this.engine = engine;
             this.path = path;
         }
-        
+
         @Override
         public Rendering render() {
             return delegate().render();
