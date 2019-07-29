@@ -9,14 +9,14 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
 import com.github.mkouba.qute.Template;
-import com.github.mkouba.qute.quarkus.TemplatePath;
+import com.github.mkouba.qute.quarkus.Located;
 import com.github.mkouba.qute.quarkus.example.api.MailInstance;
 import com.github.mkouba.qute.quarkus.example.api.TemplateInstance;
 
 @Path("/")
 public class DetailResource {
 
-    @TemplatePath
+    @Located
     Template detail;
 
     @Path("item")

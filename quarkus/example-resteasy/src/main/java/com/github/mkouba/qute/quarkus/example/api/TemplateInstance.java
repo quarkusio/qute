@@ -46,7 +46,7 @@ public class TemplateInstance extends AbstractTemplate {
 		String variant = selectVariant(request);
 		Engine engine = CDI.current().select(Engine.class).get();
 		StringBuilder buf = new StringBuilder();
-		return engine.getTemplate(variant).render(root, part -> buf.append(part))
+		return engine.getTemplate(variant).render().setData(root).consume(part -> buf.append(part))
 		    .thenApply(v -> Response.ok(buf.toString(), parseMediaTypeForTemplate(variant)).build());
 	}
 

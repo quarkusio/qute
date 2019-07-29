@@ -8,12 +8,12 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 
 import com.github.mkouba.qute.Template;
-import com.github.mkouba.qute.quarkus.TemplatePath;
+import com.github.mkouba.qute.quarkus.Located;
 
 @Path("simple")
 public class SimpleResource {
 
-    @TemplatePath
+    @Located
     Template simple;
 
     @GET

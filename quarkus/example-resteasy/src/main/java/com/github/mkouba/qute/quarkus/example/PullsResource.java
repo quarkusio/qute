@@ -1,8 +1,6 @@
 package com.github.mkouba.qute.quarkus.example;
 
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
 import javax.inject.Inject;
@@ -13,12 +11,12 @@ import javax.ws.rs.core.MediaType;
 
 import com.github.mkouba.qute.Engine;
 import com.github.mkouba.qute.Template;
-import com.github.mkouba.qute.quarkus.TemplatePath;
+import com.github.mkouba.qute.quarkus.Located;
 
 @Path("/")
 public class PullsResource {
 
-    @TemplatePath
+    @Located
     Template pulls;
 
     @Inject
@@ -28,10 +26,8 @@ public class PullsResource {
     @Produces(MediaType.TEXT_HTML)
     @Path("pulls")
     public CompletionStage<String> getPulls() {
-        Map<String, Object> data = new HashMap<>();
-        data.put("generatedTime", LocalDateTime.now());
         StringBuilder buf = new StringBuilder();
-        return pulls.render(data, part -> buf.append(part))
+        return pulls.render().putData("generatedTime", LocalDateTime.now()).consume(part -> buf.append(part))
                 .thenApply(v -> buf.toString());
     }
 

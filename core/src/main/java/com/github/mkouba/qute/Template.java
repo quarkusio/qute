@@ -32,7 +32,7 @@ public interface Template {
     interface Rendering {
 
         /**
-         * Set the the root context object. Invocation of this method removes a map produced by
+         * Set the the root context object. Invocation of this method removes a map produced previously by
          * {@link #putData(String, Object)}.
          * 
          * @param data
@@ -42,7 +42,7 @@ public interface Template {
 
         /**
          * Put the data in a map. The resulting map will be used as the root context object during rendering. Invocation of this
-         * method removes the root context object set by {@link #setData(Object)}.
+         * method removes the root context object previously set by {@link #setData(Object)}.
          * 
          * @param key
          * @param data

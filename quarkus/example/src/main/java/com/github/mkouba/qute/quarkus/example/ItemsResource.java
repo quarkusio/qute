@@ -5,20 +5,18 @@ import static io.vertx.core.http.HttpMethod.GET;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import com.github.mkouba.qute.Template;
 import com.github.mkouba.qute.TemplateExtension;
-import com.github.mkouba.qute.quarkus.TemplatePath;
+import com.github.mkouba.qute.quarkus.Located;
 
 import io.quarkus.vertx.web.Route;
 import io.quarkus.vertx.web.RoutingExchange;
 
 public class ItemsResource {
 
-    @TemplatePath
+    @Located
     Template items;
 
     @TemplateExtension
@@ -33,10 +31,7 @@ public class ItemsResource {
 
     @Route(path = "/items", methods = GET, produces = "text/html")
     public void items(RoutingExchange exchange) {
-
-        Map<String, Object> data = new HashMap<>();
-        data.put("items", dummyItems());
-        exchange.ok(items.render(data));
+        exchange.ok(items.render().putData("items", dummyItems()).asString());
     }
 
     private List<Item> dummyItems() {

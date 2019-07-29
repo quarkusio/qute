@@ -5,14 +5,14 @@ import static io.vertx.core.http.HttpMethod.GET;
 import java.math.BigDecimal;
 
 import com.github.mkouba.qute.Template;
-import com.github.mkouba.qute.quarkus.TemplatePath;
+import com.github.mkouba.qute.quarkus.Located;
 
 import io.quarkus.vertx.web.Route;
 import io.quarkus.vertx.web.RoutingExchange;
 
 public class DetailResource {
 
-    @TemplatePath
+    @Located
     Template detail;
 
     @Route(path = "/item", methods = GET, produces = "text/html")

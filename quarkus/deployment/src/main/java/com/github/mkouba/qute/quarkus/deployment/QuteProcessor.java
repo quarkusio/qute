@@ -28,7 +28,7 @@ import org.slf4j.LoggerFactory;
 import com.github.mkouba.qute.Template;
 import com.github.mkouba.qute.generator.ExtensionMethodGenerator;
 import com.github.mkouba.qute.generator.ValueResolverGenerator;
-import com.github.mkouba.qute.quarkus.TemplatePath;
+import com.github.mkouba.qute.quarkus.Located;
 import com.github.mkouba.qute.quarkus.runtime.QuteRecorder;
 import com.github.mkouba.qute.quarkus.runtime.TemplateProducer;
 
@@ -50,7 +50,7 @@ public class QuteProcessor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(QuteProcessor.class);
 
-    static final DotName TEMPLATE_PATH = DotName.createSimple(TemplatePath.class.getName());
+    static final DotName LOCATED = DotName.createSimple(Located.class.getName());
 
     @BuildStep
     void generateValueResolvers(BuildProducer<GeneratedClassBuildItem> generatedClass,
@@ -159,7 +159,7 @@ public class QuteProcessor {
     }
 
     @BuildStep
-    void collectTemplatePaths(ApplicationArchivesBuildItem applicationArchivesBuildItem,
+    void collectTemplates(ApplicationArchivesBuildItem applicationArchivesBuildItem,
             BeanArchiveIndexBuildItem beanArchiveIndex,
             BuildProducer<HotDeploymentWatchedFileBuildItem> hotDeploymentFiles,
             BuildProducer<TemplatePathBuildItem> templatePaths)
@@ -167,7 +167,7 @@ public class QuteProcessor {
         Set<String> watchedPaths = new HashSet<>();
 
         // Injected templates
-        for (AnnotationInstance templatePath : beanArchiveIndex.getIndex().getAnnotations(TEMPLATE_PATH)) {
+        for (AnnotationInstance templatePath : beanArchiveIndex.getIndex().getAnnotations(LOCATED)) {
             AnnotationValue pathValue = templatePath.value();
             LOGGER.debug("Found {} declared on {}", templatePath, templatePath.target());
             if (pathValue != null && !pathValue.asString().isEmpty()) {
@@ -240,7 +240,7 @@ public class QuteProcessor {
     void additionalBeans(BuildProducer<AdditionalBeanBuildItem> additionalBeans) {
         additionalBeans
                 .produce(AdditionalBeanBuildItem.builder()
-                        .addBeanClasses(TemplateProducer.class, TemplatePath.class, Template.class).build());
+                        .addBeanClasses(TemplateProducer.class, Located.class, Template.class).build());
     }
 
 }

@@ -91,7 +91,7 @@ public class MailInstance extends AbstractTemplate {
 		System.err.println("Got variants for txt");
 		String template = variants.getVariantTemplate(MediaType.TEXT_PLAIN_TYPE);
 		StringBuilder buf = new StringBuilder();
-		return engine.getTemplate(template).render(root, part -> buf.append(part))
+		return engine.getTemplate(template).render().setData(root).consume(part -> buf.append(part))
 		    .thenApply(v -> buf.toString());
 	}
 
@@ -101,7 +101,7 @@ public class MailInstance extends AbstractTemplate {
         System.err.println("Got variants for html");
         String template = variants.getVariantTemplate(MediaType.TEXT_HTML_TYPE);
         StringBuilder buf = new StringBuilder();
-        return engine.getTemplate(template).render(root, part -> buf.append(part))
+        return engine.getTemplate(template).render().setData(root).consume(part -> buf.append(part))
             .thenApply(v -> buf.toString());
 	}
 }

@@ -3,9 +3,7 @@ package com.github.mkouba.qute.quarkus.example;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
@@ -14,12 +12,12 @@ import javax.ws.rs.core.MediaType;
 
 import com.github.mkouba.qute.Template;
 import com.github.mkouba.qute.TemplateExtension;
-import com.github.mkouba.qute.quarkus.TemplatePath;
+import com.github.mkouba.qute.quarkus.Located;
 
 @Path("items")
 public class ItemsResource {
 
-    @TemplatePath
+    @Located
     Template items;
 
     @TemplateExtension
@@ -35,11 +33,7 @@ public class ItemsResource {
     @GET
     @Produces(MediaType.TEXT_HTML)
     public String items() {
-
-        Map<String, Object> data = new HashMap<>();
-        data.put("items", dummyItems());
-        data.put("limit", BigDecimal.valueOf(800));
-        return items.render(data);
+        return items.render().putData("items", dummyItems()).putData("limit", BigDecimal.valueOf(800)).asString();
     }
 
     private List<Item> dummyItems() {

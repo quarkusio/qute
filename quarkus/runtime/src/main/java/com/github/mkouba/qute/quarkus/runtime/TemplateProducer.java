@@ -34,7 +34,7 @@ import com.github.mkouba.qute.Template.Rendering;
 import com.github.mkouba.qute.UserTagSectionHelper;
 import com.github.mkouba.qute.ValueResolver;
 import com.github.mkouba.qute.WithSectionHelper;
-import com.github.mkouba.qute.quarkus.TemplatePath;
+import com.github.mkouba.qute.quarkus.Located;
 
 import io.quarkus.arc.Arc;
 import io.quarkus.arc.InstanceHandle;
@@ -109,12 +109,12 @@ public class TemplateProducer {
     }
 
     @Produces
-    @TemplatePath
+    @Located
     Template getTemplate(InjectionPoint injectionPoint) {
-        TemplatePath path = null;
+        Located path = null;
         for (Annotation qualifier : injectionPoint.getQualifiers()) {
-            if (qualifier.annotationType().equals(TemplatePath.class)) {
-                path = (TemplatePath) qualifier;
+            if (qualifier.annotationType().equals(Located.class)) {
+                path = (Located) qualifier;
                 break;
             }
         }

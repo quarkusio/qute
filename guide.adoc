@@ -320,7 +320,7 @@ Moreover, it's possible to inject a template located in the `META-INF/resources/
 ----
 class MyBean {
 
-  @TemplatePath <1>
+  @Located <1>
   Template items; <2>
   
   @Inject
@@ -332,7 +332,7 @@ class MyBean {
 }
 ----
 <1> This qualifier instructs the container to inject an instance of a template.
-<2> If there is no `TemplatePath#value()` provided the field name is used to locate the template. In this particular case, the container will attempt to locate a template with path `META-INF/resources/items.html`.
+<2> If there is no `Located#value()` provided the field name is used to locate the template. In this particular case, the container will attempt to locate a template with path `META-INF/resources/items.html`.
 <3> Inject the configured `Engine` instance
 
 === Template extension methods

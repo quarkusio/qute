@@ -12,13 +12,18 @@ import javax.enterprise.util.Nonbinding;
 import javax.inject.Qualifier;
 
 /**
- * Qualifies an injected template. The value is a path relative from {@code META-INF/resources/}.
+ * Qualifies an injected template. The {@link #value()} is used to locate the template; it represents the path relative from
+ * {@code META-INF/resources/}. If no value is provided the field name of an injected field may be used to locate the template.
  */
 @Qualifier
 @Retention(RUNTIME)
 @Target({ FIELD, PARAMETER, METHOD })
-public @interface TemplatePath {
+public @interface Located {
 
+    /**
+     * 
+     * @return the path relative from {@code META-INF/resources/} or an empty string
+     */
     @Nonbinding
     String value() default "";
 }
