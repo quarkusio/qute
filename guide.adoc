@@ -323,7 +323,7 @@ class MyBean {
   @Inject 
   Template items; <1>
   
-  @ResourcePath("items2_v1.html") <2>
+  @ResourcePath("detail/items2_v1.html") <2>
   Template items2;
   
   @Inject
@@ -332,8 +332,13 @@ class MyBean {
 }
 ----
 <1> If there is no qualifier provided the field name is used to locate the template. In this particular case, the container will attempt to locate a template with path `META-INF/resources/templates/items.html`.
-<2> This qualifier instructs the container to inject a template from a specific path.
+<2> This qualifier instructs the container to inject a template from a path relative from `META-INF/resources/templates`.
 <3> Inject the configured `Engine` instance.
+
+=== Configuration
+
+* `quarkus.qute.basePath` - a path relative from `META-INF/resources/`; all files in the base directory and its subdirectories are considered templates and watched for changes in the development mode
+* `quarkus.qute.suffixes` - a set of suffixes used when attempting to locate a template; by default, `engine.getTemplate(foo)` would result in several lookups: `META-INF/resources/templates/foo`, `META-INF/resources/templates/foo.html` and `META-INF/resources/templates/foo.txt`
 
 === Template extension methods
 

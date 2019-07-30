@@ -8,15 +8,16 @@ import io.quarkus.runtime.annotations.ConfigRoot;
 
 @ConfigRoot(phase = ConfigPhase.BUILD_AND_RUN_TIME_FIXED)
 public class QuteConfig {
-    
+
     /**
-     * "META-INF/resources/${basePath}"
+     * A path relative from {@code META-INF/resources/}. All files in the base directory and its subdirectories are considered
+     * templates and watched for changes in the development mode.
      */
     @ConfigItem(defaultValue = "templates")
     public String basePath;
-    
+
     /**
-     * TODO
+     * The set of suffixes used when attempting to locate a template.
      */
     @ConfigItem(defaultValue = "html,txt")
     public List<String> suffixes;
