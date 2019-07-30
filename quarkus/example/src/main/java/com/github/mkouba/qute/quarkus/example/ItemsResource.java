@@ -30,6 +30,11 @@ public class ItemsResource {
         return value.setScale(newScale, RoundingMode.HALF_UP);
     }
 
+    @TemplateExtension
+    static String toUpperCase(String value) {
+        return value.toUpperCase();
+    }
+
     @Route(path = "/items", methods = GET, produces = "text/html")
     public void items(RoutingExchange exchange) {
         exchange.ok(items.render().putData("items", dummyItems()).asString());

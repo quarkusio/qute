@@ -5,7 +5,6 @@ import java.math.BigDecimal;
 import com.github.mkouba.qute.TemplateData;
 
 @TemplateData
-@TemplateData(target = String.class, properties = true)
 public class Item {
 
     private String name;

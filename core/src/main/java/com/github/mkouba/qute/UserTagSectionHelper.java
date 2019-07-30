@@ -57,7 +57,7 @@ public class UserTagSectionHelper implements SectionHelper {
 
         @Override
         public ParametersInfo getParameters() {
-            return ParametersInfo.builder().addParameter(new Parameter(IT, null, true)).build();
+            return ParametersInfo.builder().addParameter(new Parameter(IT, "this", true)).build();
         }
 
         @Override
