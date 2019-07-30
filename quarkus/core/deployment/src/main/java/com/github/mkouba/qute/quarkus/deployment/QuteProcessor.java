@@ -38,7 +38,10 @@ import com.github.mkouba.qute.rxjava.RxjavaPublisherFactory;
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
 import io.quarkus.arc.deployment.BeanArchiveIndexBuildItem;
 import io.quarkus.arc.deployment.BeanContainerBuildItem;
+import io.quarkus.arc.deployment.BeanDeploymentValidatorBuildItem;
+import io.quarkus.arc.processor.BeanDeploymentValidator;
 import io.quarkus.arc.processor.DotNames;
+import io.quarkus.arc.processor.InjectionPointInfo;
 import io.quarkus.deployment.ApplicationArchive;
 import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
@@ -54,7 +57,8 @@ public class QuteProcessor {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(QuteProcessor.class);
 
-    static final DotName RESOURCE_PATH = DotName.createSimple(ResourcePath.class.getName());
+    public static final DotName RESOURCE_PATH = DotName.createSimple(ResourcePath.class.getName());
+    public static final DotName TEMPLATE = DotName.createSimple(Template.class.getName());
 
     @BuildStep
     void generateValueResolvers(BuildProducer<GeneratedClassBuildItem> generatedClass,
@@ -199,8 +203,59 @@ public class QuteProcessor {
             LOGGER.debug("Watching template path: {}", path);
             hotDeploymentFiles.produce(new HotDeploymentWatchedFileBuildItem(path, false));
         }
+    }
 
-        // TODO validate injected templates
+    @BuildStep
+    BeanDeploymentValidatorBuildItem validateTemplateInjectionPoints(QuteConfig config,
+            List<TemplatePathBuildItem> templatePaths) {
+        return new BeanDeploymentValidatorBuildItem(new BeanDeploymentValidator() {
+
+            @Override
+            public void validate(ValidationContext validationContext) {
+                // Remove suffix from the path; e.g. "items.html" becomes "items"
+                Set<String> filePaths = templatePaths.stream().map(tp -> {
+                    int idx = tp.getPath().lastIndexOf('.');
+                    String path;
+                    if (idx > 0) {
+                        path = tp.getPath().substring(0, idx);
+                    } else {
+                        path = tp.getPath();
+                    }
+                    return path;
+                }).collect(Collectors.toSet());
+                for (InjectionPointInfo injectionPoint : validationContext.get(Key.INJECTION_POINTS)) {
+                    if (injectionPoint.getRequiredType().name().equals(TEMPLATE)) {
+                        AnnotationInstance resourcePath = injectionPoint.getRequiredQualifier(RESOURCE_PATH);
+                        String name;
+                        if (resourcePath != null) {
+                            name = resourcePath.value().asString();
+                        } else if (injectionPoint.hasDefaultedQualifier()) {
+                            name = getName(injectionPoint);
+                        } else {
+                            name = null;
+                        }
+                        if (name != null) {
+                            // For "@Inject Template items" we try to match "items"
+                            // For "@ResourcePath("github/pulls") Template pulls" we try to match "github/pulls"
+                            if (filePaths.stream().noneMatch(path -> path.endsWith(name))) {
+                                validationContext.addDeploymentProblem(
+                                        new IllegalStateException("No template found for " + injectionPoint.getTargetInfo()));
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    private String getName(InjectionPointInfo injectionPoint) {
+        if (injectionPoint.isField()) {
+            return injectionPoint.getTarget().asField().name();
+        } else if (injectionPoint.isParam()) {
+            String name = injectionPoint.getTarget().asMethod().parameterName(injectionPoint.getPosition());
+            return name == null ? injectionPoint.getTarget().asMethod().name() : name;
+        }
+        throw new IllegalArgumentException();
     }
 
     private void scan(Path root, Path directory, String basePath, Set<String> watchedPaths,

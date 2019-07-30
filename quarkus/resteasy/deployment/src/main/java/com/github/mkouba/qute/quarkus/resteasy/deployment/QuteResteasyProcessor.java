@@ -12,6 +12,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.jboss.jandex.AnnotationInstance;
 import org.jboss.jandex.AnnotationTarget;
@@ -21,6 +22,8 @@ import org.jboss.jandex.IndexView;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.github.mkouba.qute.quarkus.deployment.QuteProcessor;
+import com.github.mkouba.qute.quarkus.deployment.TemplatePathBuildItem;
 import com.github.mkouba.qute.quarkus.resteasy.QuteResteasyRecorder;
 import com.github.mkouba.qute.quarkus.resteasy.TemplateResponseFilter;
 import com.github.mkouba.qute.quarkus.resteasy.TemplateVariantProducer;
@@ -30,6 +33,9 @@ import com.github.mkouba.qute.quarkus.runtime.QuteConfig;
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
 import io.quarkus.arc.deployment.BeanArchiveIndexBuildItem;
 import io.quarkus.arc.deployment.BeanContainerBuildItem;
+import io.quarkus.arc.deployment.BeanDeploymentValidatorBuildItem;
+import io.quarkus.arc.processor.BeanDeploymentValidator;
+import io.quarkus.arc.processor.InjectionPointInfo;
 import io.quarkus.deployment.ApplicationArchive;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.annotations.Record;
@@ -89,10 +95,45 @@ public class QuteResteasyProcessor {
 
         Map<String, List<String>> variants = new HashMap<>();
         scanVariants(basePath, templatesPath, templatesPath, variantBases, variants);
-        
+
         LOGGER.info("Variants found: {}", variants);
 
         recorder.start(beanContainer.getValue(), variants);
+    }
+
+    @BuildStep
+    BeanDeploymentValidatorBuildItem validateTemplateInjectionPoints(QuteConfig config,
+            List<TemplatePathBuildItem> templatePaths) {
+        return new BeanDeploymentValidatorBuildItem(new BeanDeploymentValidator() {
+
+            @Override
+            public void validate(ValidationContext validationContext) {
+                // Remove suffix from the path; e.g. "items.html" becomes "items"
+                Set<String> filePaths = templatePaths.stream().map(tp -> {
+                    int idx = tp.getPath().lastIndexOf('.');
+                    String path;
+                    if (idx > 0) {
+                        path = tp.getPath().substring(0, idx);
+                    } else {
+                        path = tp.getPath();
+                    }
+                    return path;
+                }).collect(Collectors.toSet());
+                for (InjectionPointInfo injectionPoint : validationContext.get(Key.INJECTION_POINTS)) {
+                    if (!injectionPoint.hasDefaultedQualifier()
+                            && injectionPoint.getRequiredType().name().equals(QuteProcessor.TEMPLATE)) {
+                        AnnotationInstance variant = injectionPoint.getRequiredQualifier(VARIANT);
+                        if (variant != null) {
+                            String name = variant.value().asString();
+                            if (filePaths.stream().noneMatch(path -> path.endsWith(name))) {
+                                validationContext.addDeploymentProblem(
+                                        new IllegalStateException("No template found for " + injectionPoint.getTargetInfo()));
+                            }
+                        }
+                    }
+                }
+            }
+        });
     }
 
     void scanVariants(String basePath, Path root, Path directory, Set<String> variantBases, Map<String, List<String>> variants)
