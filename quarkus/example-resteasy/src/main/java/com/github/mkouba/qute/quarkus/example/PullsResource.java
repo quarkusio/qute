@@ -11,12 +11,11 @@ import javax.ws.rs.core.MediaType;
 
 import com.github.mkouba.qute.Engine;
 import com.github.mkouba.qute.Template;
-import com.github.mkouba.qute.quarkus.Located;
 
 @Path("/")
 public class PullsResource {
 
-    @Located
+    @Inject
     Template pulls;
 
     @Inject

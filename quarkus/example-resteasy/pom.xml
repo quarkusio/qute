@@ -28,7 +28,7 @@
         </dependency>
         <dependency>
             <groupId>com.github.mkouba.qute</groupId>
-            <artifactId>qute-quarkus</artifactId>
+            <artifactId>qute-quarkus-resteasy</artifactId>
         </dependency>
         <dependency>
             <groupId>io.smallrye.reactive</groupId>

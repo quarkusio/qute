@@ -56,6 +56,21 @@ public class MyTest {
         .then()
            .statusCode(200)    
            .body(is(TEXT_BODY));
+        
+        given()
+        .when()
+        .get("/item3")
+        .then()
+           .statusCode(200)    
+           .body(is(HTML_BODY));
+        
+        given()
+        .when()
+        .accept("text/plain")
+        .get("/item3")
+        .then()
+           .statusCode(200)    
+           .body(is(TEXT_BODY));
     }
 
     @Test

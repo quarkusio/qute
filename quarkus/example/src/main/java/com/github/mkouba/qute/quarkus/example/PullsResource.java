@@ -10,14 +10,14 @@ import javax.inject.Inject;
 
 import com.github.mkouba.qute.Engine;
 import com.github.mkouba.qute.Template;
-import com.github.mkouba.qute.quarkus.Located;
+import com.github.mkouba.qute.quarkus.ResourcePath;
 
 import io.quarkus.vertx.web.Route;
 import io.quarkus.vertx.web.RoutingExchange;
 
 public class PullsResource {
 
-    @Located
+    @ResourcePath("github/pulls")
     Template pulls;
 
     @Inject

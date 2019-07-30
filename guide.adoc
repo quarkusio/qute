@@ -314,26 +314,26 @@ If you want to use Qute in your Quarkus application add the following dependency
 ----
 
 An `Engine` instance is automatically configured and a bean is also registered.
-Moreover, it's possible to inject a template located in the `META-INF/resources/` directory: 
+Moreover, it's possible to inject a template located in the `META-INF/resources/templates` directory: 
 
 [source,java]
 ----
 class MyBean {
 
-  @Located <1>
-  Template items; <2>
+  @Inject 
+  Template items; <1>
+  
+  @ResourcePath("items2_v1.html") <2>
+  Template items2;
   
   @Inject
   Engine engine; <3>
   
-  void doSomething() {
-    System.out.println(items.render(data));
-  }
 }
 ----
-<1> This qualifier instructs the container to inject an instance of a template.
-<2> If there is no `Located#value()` provided the field name is used to locate the template. In this particular case, the container will attempt to locate a template with path `META-INF/resources/items.html`.
-<3> Inject the configured `Engine` instance
+<1> If there is no qualifier provided the field name is used to locate the template. In this particular case, the container will attempt to locate a template with path `META-INF/resources/templates/items.html`.
+<2> This qualifier instructs the container to inject a template from a specific path.
+<3> Inject the configured `Engine` instance.
 
 === Template extension methods
 

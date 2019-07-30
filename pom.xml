@@ -51,12 +51,36 @@
                 <version>${project.version}</version>
             </dependency>
             <dependency>
+                <groupId>com.github.mkouba.qute</groupId>
+                <artifactId>qute-quarkus-deployment</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.mkouba.qute</groupId>
+                <artifactId>qute-quarkus-resteasy</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.github.mkouba.qute</groupId>
+                <artifactId>qute-quarkus-resteasy-deployment</artifactId>
+                <version>${project.version}</version>
+            </dependency>
+            <dependency>
                 <groupId>io.quarkus</groupId>
                 <artifactId>quarkus-bom</artifactId>
                 <version>${version.quarkus}</version>
                 <type>pom</type>
                 <scope>import</scope>
             </dependency>
+            
+            <!-- TODO wait for 0.20.0 -->
+            <!-- dependency>
+                <groupId>io.quarkus</groupId>
+                <artifactId>quarkus-bom-deployment</artifactId>
+                <version>${version.quarkus}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency-->
             <dependency>
                 <groupId>io.quarkus</groupId>
                 <artifactId>quarkus-core-deployment</artifactId>
@@ -67,11 +91,17 @@
                 <artifactId>quarkus-arc-deployment</artifactId>
                 <version>${version.quarkus}</version>
             </dependency>
+             <dependency>
+                <groupId>io.quarkus</groupId>
+                <artifactId>quarkus-resteasy-common-deployment</artifactId>
+                <version>${version.quarkus}</version>
+            </dependency>
             <dependency>
                 <groupId>io.quarkus</groupId>
                 <artifactId>quarkus-junit5-internal</artifactId>
                 <version>${version.quarkus}</version>
             </dependency>
+            
             <dependency>
                 <groupId>org.slf4j</groupId>
                 <artifactId>slf4j-api</artifactId>

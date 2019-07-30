@@ -7,16 +7,17 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.inject.Inject;
+
 import com.github.mkouba.qute.Template;
 import com.github.mkouba.qute.TemplateExtension;
-import com.github.mkouba.qute.quarkus.Located;
 
 import io.quarkus.vertx.web.Route;
 import io.quarkus.vertx.web.RoutingExchange;
 
 public class ItemsResource {
 
-    @Located
+    @Inject
     Template items;
 
     @TemplateExtension

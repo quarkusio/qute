@@ -22,7 +22,7 @@ public class SimpleResource {
 
     @Route(path = "/simple", methods = GET, produces = "text/html")
     public void simple(RoutingExchange exchange) {
-        exchange.ok(engine.getTemplate("templates/simple.html").render(Collections.singletonList("foo")));
+        exchange.ok(engine.getTemplate("simple.html").render(Collections.singletonList("foo")));
     }
 
     void addErrorHandler(@Observes Router router) {

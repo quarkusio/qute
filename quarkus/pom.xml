@@ -16,8 +16,8 @@
     <packaging>pom</packaging>
 
     <modules>
-        <module>deployment</module>
-        <module>runtime</module>
+        <module>core</module>
+        <module>resteasy</module>
         <module>example</module>
         <module>example-resteasy</module>
     </modules>

@@ -68,7 +68,8 @@ public abstract class AbstractTemplate {
 
 	private static String getActionName() {
 		ResourceInfo resourceMethod = ResteasyContext.getContextData(ResourceInfo.class);
-		return "templates/"+resourceMethod.getResourceClass().getSimpleName()+"/"+resourceMethod.getResourceMethod().getName();
+		return resourceMethod.getResourceClass().getSimpleName()+"/"+resourceMethod.getResourceMethod().getName();
+		// return "templates/"+resourceMethod.getResourceClass().getSimpleName()+"/"+resourceMethod.getResourceMethod().getName();
 	}
 
 //	public Map<String, Object> getVariables() {
@@ -103,7 +104,7 @@ public abstract class AbstractTemplate {
         Map<Variant, String> variants = new HashMap<>();
         try {
             // FIXME: get this damn variants list at compile-time
-            URL templateRoot = Thread.currentThread().getContextClassLoader().getResource("META-INF/resources/"+templateDir);
+            URL templateRoot = Thread.currentThread().getContextClassLoader().getResource("META-INF/resources/templates/"+templateDir);
             Path templateRootPath = Paths.get(templateRoot.toURI());
             Files.walk(templateRootPath, 1)
             .map(path2 -> templateRootPath.relativize(path2).toString())

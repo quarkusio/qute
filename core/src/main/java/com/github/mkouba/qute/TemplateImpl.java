@@ -1,8 +1,6 @@
 package com.github.mkouba.qute;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
@@ -27,33 +25,13 @@ class TemplateImpl implements Template {
         return new RenderingImpl();
     }
 
-    private class RenderingImpl implements Rendering {
-
-        private Object data;
-        private Map<String, Object> dataMap;
-
-        @Override
-        public Rendering setData(Object data) {
-            this.data = data;
-            dataMap = null;
-            return this;
-        }
-
-        @Override
-        public Rendering putData(String key, Object data) {
-            this.data = null;
-            if (dataMap == null) {
-                dataMap = new HashMap<String, Object>();
-            }
-            dataMap.put(key, data);
-            return this;
-        }
+    private class RenderingImpl extends RenderingBase {
 
         @Override
         public String asString() {
             StringBuilder builder = new StringBuilder();
             try {
-                renderData(data, builder::append).toCompletableFuture().get(10, TimeUnit.SECONDS);
+                renderData(data(), builder::append).toCompletableFuture().get(10, TimeUnit.SECONDS);
             } catch (InterruptedException | ExecutionException | TimeoutException e) {
                 throw new IllegalStateException(e);
             }
@@ -71,7 +49,7 @@ class TemplateImpl implements Template {
 
         @Override
         public CompletionStage<Void> consume(Consumer<String> resultConsumer) {
-            return renderData(data, resultConsumer);
+            return renderData(data(), resultConsumer);
         }
 
     }

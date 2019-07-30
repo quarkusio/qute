@@ -6,7 +6,7 @@ import java.util.function.Consumer;
 import org.reactivestreams.Publisher;
 
 /**
- * A compiled template.
+ * Compiled template.
  */
 public interface Template {
 
@@ -72,7 +72,7 @@ public interface Template {
          * @return a completion stage that is completed once the rendering finished
          */
         CompletionStage<Void> consume(Consumer<String> consumer);
-
+        
     }
 
 }

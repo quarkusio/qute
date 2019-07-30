@@ -5,6 +5,7 @@ import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.inject.Inject;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
@@ -12,12 +13,11 @@ import javax.ws.rs.core.MediaType;
 
 import com.github.mkouba.qute.Template;
 import com.github.mkouba.qute.TemplateExtension;
-import com.github.mkouba.qute.quarkus.Located;
 
 @Path("items")
 public class ItemsResource {
 
-    @Located
+    @Inject
     Template items;
 
     @TemplateExtension

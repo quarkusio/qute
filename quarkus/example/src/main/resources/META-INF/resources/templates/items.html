@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style type="text/css">
+body {
+  font-family: sans-serif;
+}
+</style>
+<title>List of Items</title>
+</head>
+
+<body>
+    <h1>List of Items</h1>
+    <p>We have found <strong>{items.size}</strong> items.</p>
+    <ol>
+    {#each items}
+        {#item this limit=800 /}
+    {/each}
+    </ol>
+</body>
+
+</html>

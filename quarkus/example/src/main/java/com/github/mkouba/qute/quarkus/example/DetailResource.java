@@ -4,15 +4,16 @@ import static io.vertx.core.http.HttpMethod.GET;
 
 import java.math.BigDecimal;
 
+import javax.inject.Inject;
+
 import com.github.mkouba.qute.Template;
-import com.github.mkouba.qute.quarkus.Located;
 
 import io.quarkus.vertx.web.Route;
 import io.quarkus.vertx.web.RoutingExchange;
 
 public class DetailResource {
 
-    @Located
+    @Inject
     Template detail;
 
     @Route(path = "/item", methods = GET, produces = "text/html")
