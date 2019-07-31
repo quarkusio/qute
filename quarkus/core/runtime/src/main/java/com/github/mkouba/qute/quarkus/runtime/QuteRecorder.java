@@ -1,6 +1,7 @@
 package com.github.mkouba.qute.quarkus.runtime;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -18,22 +19,27 @@ public class QuteRecorder {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(QuteRecorder.class);
 
-    public void start(QuteConfig config, BeanContainer container, List<String> resolverClasses,
+    public void initEngine(QuteConfig config, BeanContainer container, List<String> resolverClasses,
             List<String> templatePaths, List<String> tags) {
-        TemplateProducer templateProducer = container.instance(TemplateProducer.class);
-        templateProducer.init(config, resolverClasses, templatePaths, tags);
+        EngineProducer producer = container.instance(EngineProducer.class);
+        producer.init(config, resolverClasses, templatePaths, tags);
+    }
+
+    public void initVariants(BeanContainer container, Map<String, List<String>> variants) {
+        VariantTemplateProducer producer = container.instance(VariantTemplateProducer.class);
+        producer.init(variants);
     }
 
     public static void clearTemplates(Set<String> paths) {
-        TemplateProducer templateProducer = Arc.container().instance(TemplateProducer.class).get();
+        EngineProducer engineProducer = Arc.container().instance(EngineProducer.class).get();
         Set<String> pathIds = paths.stream().map(path -> {
             String id = path;
-            if (path.startsWith(templateProducer.getTagPath())) {
+            if (path.startsWith(engineProducer.getTagPath())) {
                 // ["META-INF/resources/templates/tags/item.html"] -> ["item.html"]
-                id = path.substring(templateProducer.getTagPath().length());
-            } else if (path.startsWith(templateProducer.getBasePath())) {
+                id = path.substring(engineProducer.getTagPath().length());
+            } else if (path.startsWith(engineProducer.getBasePath())) {
                 // ["META-INF/resources/templates/items.html"] -> ["items.html"]
-                id = path.substring(templateProducer.getBasePath().length());
+                id = path.substring(engineProducer.getBasePath().length());
             }
             return id;
         }).collect(Collectors.toSet());
@@ -42,7 +48,7 @@ public class QuteRecorder {
             return;
         }
 
-        Engine engine = templateProducer.getEngine();
+        Engine engine = engineProducer.getEngine();
         if (engine != null) {
             engine.removeTemplates(id -> {
                 // Exact match or path starts with id, e.g. "items.html" starts with "items"

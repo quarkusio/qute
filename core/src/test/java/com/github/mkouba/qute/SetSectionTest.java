@@ -11,7 +11,7 @@ public class SetSectionTest {
         Engine engine = Engine.builder().addDefaultSectionHelpers()
                 .addDefaultValueResolvers()
                 .build();
-        assertEquals("NOT_FOUND - true:mix", engine.parse("{foo} - {#set foo=true bar='mix'}{foo}:{bar}{/}").render().asString());
+        assertEquals("NOT_FOUND - true:mix", engine.parse("{foo} - {#set foo=true bar='mix'}{foo}:{bar}{/}").render().getResult());
     }
 
 }

@@ -28,14 +28,14 @@ class TemplateImpl implements Template {
     private class RenderingImpl extends RenderingBase {
 
         @Override
-        public String asString() {
-            StringBuilder builder = new StringBuilder();
+        public String getResult() {
+            String result;
             try {
-                renderData(data(), builder::append).toCompletableFuture().get(10, TimeUnit.SECONDS);
+                result = getResultAsync().toCompletableFuture().get(10, TimeUnit.SECONDS);
             } catch (InterruptedException | ExecutionException | TimeoutException e) {
                 throw new IllegalStateException(e);
             }
-            return builder.toString();
+            return result;
         }
 
         @Override
@@ -45,6 +45,12 @@ class TemplateImpl implements Template {
                 throw new UnsupportedOperationException();
             }
             return factory.createPublisher(this);
+        }
+
+        @Override
+        public CompletionStage<String> getResultAsync() {
+            StringBuilder builder = new StringBuilder();
+            return renderData(data(), builder::append).thenApply(v -> builder.toString());
         }
 
         @Override

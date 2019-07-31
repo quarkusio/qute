@@ -5,11 +5,14 @@ import static io.quarkus.deployment.annotations.ExecutionTime.RUNTIME_INIT;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -30,16 +33,20 @@ import com.github.mkouba.qute.Template;
 import com.github.mkouba.qute.generator.ExtensionMethodGenerator;
 import com.github.mkouba.qute.generator.ValueResolverGenerator;
 import com.github.mkouba.qute.quarkus.ResourcePath;
+import com.github.mkouba.qute.quarkus.VariantTemplate;
+import com.github.mkouba.qute.quarkus.runtime.EngineProducer;
 import com.github.mkouba.qute.quarkus.runtime.QuteConfig;
 import com.github.mkouba.qute.quarkus.runtime.QuteRecorder;
 import com.github.mkouba.qute.quarkus.runtime.TemplateProducer;
+import com.github.mkouba.qute.quarkus.runtime.VariantTemplateProducer;
 import com.github.mkouba.qute.rxjava.RxjavaPublisherFactory;
 
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
 import io.quarkus.arc.deployment.BeanArchiveIndexBuildItem;
 import io.quarkus.arc.deployment.BeanContainerBuildItem;
-import io.quarkus.arc.deployment.BeanDeploymentValidatorBuildItem;
-import io.quarkus.arc.processor.BeanDeploymentValidator;
+import io.quarkus.arc.deployment.ValidationPhaseBuildItem;
+import io.quarkus.arc.deployment.ValidationPhaseBuildItem.ValidationErrorBuildItem;
+import io.quarkus.arc.processor.BuildExtension;
 import io.quarkus.arc.processor.DotNames;
 import io.quarkus.arc.processor.InjectionPointInfo;
 import io.quarkus.deployment.ApplicationArchive;
@@ -59,6 +66,15 @@ public class QuteProcessor {
 
     public static final DotName RESOURCE_PATH = DotName.createSimple(ResourcePath.class.getName());
     public static final DotName TEMPLATE = DotName.createSimple(Template.class.getName());
+    public static final DotName VARIANT_TEMPLATE = DotName.createSimple(VariantTemplate.class.getName());
+
+    @BuildStep
+    AdditionalBeanBuildItem additionalBeans() {
+        return AdditionalBeanBuildItem.builder()
+                .addBeanClasses(EngineProducer.class, TemplateProducer.class, VariantTemplateProducer.class, ResourcePath.class,
+                        Template.class)
+                .build();
+    }
 
     @BuildStep
     void generateValueResolvers(BuildProducer<GeneratedClassBuildItem> generatedClass,
@@ -206,46 +222,108 @@ public class QuteProcessor {
     }
 
     @BuildStep
-    BeanDeploymentValidatorBuildItem validateTemplateInjectionPoints(QuteConfig config,
-            List<TemplatePathBuildItem> templatePaths) {
-        return new BeanDeploymentValidatorBuildItem(new BeanDeploymentValidator() {
+    void processInjectionPoints(QuteConfig config, ApplicationArchivesBuildItem applicationArchivesBuildItem,
+            List<TemplatePathBuildItem> templatePaths, ValidationPhaseBuildItem validationPhase,
+            BuildProducer<ValidationErrorBuildItem> validationErrors, BuildProducer<TemplateVariantsBuildItem> templateVariants)
+            throws IOException {
 
-            @Override
-            public void validate(ValidationContext validationContext) {
-                // Remove suffix from the path; e.g. "items.html" becomes "items"
-                Set<String> filePaths = templatePaths.stream().map(tp -> {
-                    int idx = tp.getPath().lastIndexOf('.');
-                    String path;
-                    if (idx > 0) {
-                        path = tp.getPath().substring(0, idx);
-                    } else {
-                        path = tp.getPath();
+        ApplicationArchive applicationArchive = applicationArchivesBuildItem.getRootArchive();
+        String basePath = "META-INF/resources/" + config.basePath + "/";
+        Path templatesPath = applicationArchive.getChildPath(basePath);
+
+        // Remove suffix from the path; e.g. "items.html" becomes "items"
+        Set<String> filePaths = templatePaths.stream().map(tp -> {
+            int idx = tp.getPath().lastIndexOf('.');
+            String path;
+            if (idx != -1) {
+                path = tp.getPath().substring(0, idx);
+            } else {
+                path = tp.getPath();
+            }
+            return path;
+        }).collect(Collectors.toSet());
+
+        Set<String> variantBases = new HashSet<>();
+
+        for (InjectionPointInfo injectionPoint : validationPhase.getContext().get(BuildExtension.Key.INJECTION_POINTS)) {
+
+            if (injectionPoint.getRequiredType().name().equals(TEMPLATE)) {
+
+                AnnotationInstance resourcePath = injectionPoint.getRequiredQualifier(RESOURCE_PATH);
+                String name;
+                if (resourcePath != null) {
+                    name = resourcePath.value().asString();
+                } else if (injectionPoint.hasDefaultedQualifier()) {
+                    name = getName(injectionPoint);
+                } else {
+                    name = null;
+                }
+                if (name != null) {
+                    // For "@Inject Template items" we try to match "items"
+                    // For "@ResourcePath("github/pulls") Template pulls" we try to match "github/pulls"
+                    if (filePaths.stream().noneMatch(path -> path.endsWith(name))) {
+                        validationErrors.produce(new ValidationErrorBuildItem(
+                                new IllegalStateException("No template found for " + injectionPoint.getTargetInfo())));
                     }
-                    return path;
-                }).collect(Collectors.toSet());
-                for (InjectionPointInfo injectionPoint : validationContext.get(Key.INJECTION_POINTS)) {
-                    if (injectionPoint.getRequiredType().name().equals(TEMPLATE)) {
-                        AnnotationInstance resourcePath = injectionPoint.getRequiredQualifier(RESOURCE_PATH);
-                        String name;
-                        if (resourcePath != null) {
-                            name = resourcePath.value().asString();
-                        } else if (injectionPoint.hasDefaultedQualifier()) {
-                            name = getName(injectionPoint);
-                        } else {
-                            name = null;
-                        }
-                        if (name != null) {
-                            // For "@Inject Template items" we try to match "items"
-                            // For "@ResourcePath("github/pulls") Template pulls" we try to match "github/pulls"
-                            if (filePaths.stream().noneMatch(path -> path.endsWith(name))) {
-                                validationContext.addDeploymentProblem(
-                                        new IllegalStateException("No template found for " + injectionPoint.getTargetInfo()));
-                            }
-                        }
+                }
+
+            } else if (injectionPoint.getRequiredType().name().equals(VARIANT_TEMPLATE)) {
+
+                AnnotationInstance resourcePath = injectionPoint.getRequiredQualifier(RESOURCE_PATH);
+                String name;
+                if (resourcePath != null) {
+                    name = resourcePath.value().asString();
+                } else if (injectionPoint.hasDefaultedQualifier()) {
+                    name = getName(injectionPoint);
+                } else {
+                    name = null;
+                }
+                if (name != null) {
+                    if (filePaths.stream().noneMatch(path -> path.endsWith(name))) {
+                        validationErrors.produce(new ValidationErrorBuildItem(
+                                new IllegalStateException("No variant template found for " + injectionPoint.getTargetInfo())));
+                    } else {
+                        variantBases.add(name);
                     }
                 }
             }
-        });
+        }
+
+        if (!variantBases.isEmpty()) {
+            Map<String, List<String>> variants = new HashMap<>();
+            scanVariants(basePath, templatesPath, templatesPath, variantBases, variants);
+            templateVariants.produce(new TemplateVariantsBuildItem(variants));
+            LOGGER.debug("Variant templates found: {}", variants);
+        }
+    }
+
+    @BuildStep
+    ServiceProviderBuildItem registerPublisherFactory() {
+        return new ServiceProviderBuildItem(PublisherFactory.class.getName(), RxjavaPublisherFactory.class.getName());
+    }
+
+    @BuildStep
+    @Record(RUNTIME_INIT)
+    void initialize(QuteRecorder recorder, QuteConfig config,
+            List<GeneratedValueResolverBuildItem> generatedValueResolvers, List<TemplatePathBuildItem> templatePaths,
+            Optional<TemplateVariantsBuildItem> templateVariants,
+            BeanContainerBuildItem beanContainer,
+            List<ServiceStartBuildItem> startedServices) {
+
+        recorder.initEngine(config, beanContainer.getValue(), generatedValueResolvers.stream()
+                .map(GeneratedValueResolverBuildItem::getClassName).collect(Collectors.toList()),
+                templatePaths.stream().filter(TemplatePathBuildItem::isRegular).map(TemplatePathBuildItem::getPath)
+                        .collect(Collectors.toList()),
+                templatePaths.stream().filter(TemplatePathBuildItem::isTag).map(TemplatePathBuildItem::getPath)
+                        .collect(Collectors.toList()));
+
+        Map<String, List<String>> variants;
+        if (templateVariants.isPresent()) {
+            variants = templateVariants.get().getVariants();
+        } else {
+            variants = Collections.emptyMap();
+        }
+        recorder.initVariants(beanContainer.getValue(), variants);
     }
 
     private String getName(InjectionPointInfo injectionPoint) {
@@ -260,9 +338,9 @@ public class QuteProcessor {
 
     private void scan(Path root, Path directory, String basePath, Set<String> watchedPaths,
             BuildProducer<TemplatePathBuildItem> templatePaths) throws IOException {
-        Iterator<Path> templateFiles = Files.list(directory).iterator();
-        while (templateFiles.hasNext()) {
-            Path path = templateFiles.next();
+        Iterator<Path> files = Files.list(directory).iterator();
+        while (files.hasNext()) {
+            Path path = files.next();
             if (Files.isRegularFile(path)) {
                 LOGGER.debug("Found template: {}", path);
                 String templatePath = root.relativize(path).toString();
@@ -276,29 +354,24 @@ public class QuteProcessor {
         }
     }
 
-    @BuildStep
-    ServiceProviderBuildItem registerPublisherFactory() {
-        return new ServiceProviderBuildItem(PublisherFactory.class.getName(), RxjavaPublisherFactory.class.getName());
-    }
-
-    @BuildStep
-    @Record(RUNTIME_INIT)
-    void initialize(QuteRecorder template, QuteConfig config,
-            List<GeneratedValueResolverBuildItem> generatedValueResolvers, List<TemplatePathBuildItem> templatePaths,
-            BeanContainerBuildItem beanContainer,
-            List<ServiceStartBuildItem> startedServices) {
-        template.start(config, beanContainer.getValue(), generatedValueResolvers.stream()
-                .map(GeneratedValueResolverBuildItem::getClassName).collect(Collectors.toList()),
-                templatePaths.stream().filter(TemplatePathBuildItem::isRegular).map(TemplatePathBuildItem::getPath)
-                        .collect(Collectors.toList()),
-                templatePaths.stream().filter(TemplatePathBuildItem::isTag).map(TemplatePathBuildItem::getPath)
-                        .collect(Collectors.toList()));
-    }
-
-    @BuildStep
-    AdditionalBeanBuildItem additionalBeans() {
-        return AdditionalBeanBuildItem.builder().addBeanClasses(TemplateProducer.class, ResourcePath.class, Template.class)
-                .build();
+    void scanVariants(String basePath, Path root, Path directory, Set<String> variantBases, Map<String, List<String>> variants)
+            throws IOException {
+        Iterator<Path> files = Files.list(directory)
+                .iterator();
+        while (files.hasNext()) {
+            Path path = files.next();
+            if (Files.isRegularFile(path)) {
+                for (String base : variantBases) {
+                    if (path.toAbsolutePath().toString().contains(base)) {
+                        // Variants are relative paths to base, e.g. "detail/item2"
+                        variants.computeIfAbsent(base, i -> new ArrayList<>())
+                                .add(root.relativize(path).toString());
+                    }
+                }
+            } else if (Files.isDirectory(path)) {
+                scanVariants(basePath, root, path, variantBases, variants);
+            }
+        }
     }
 
 }

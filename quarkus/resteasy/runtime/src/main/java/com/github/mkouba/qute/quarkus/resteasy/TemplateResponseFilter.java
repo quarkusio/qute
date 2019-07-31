@@ -1,6 +1,8 @@
 package com.github.mkouba.qute.quarkus.resteasy;
 
 import java.io.IOException;
+import java.util.List;
+import java.util.stream.Collectors;
 
 import javax.ws.rs.container.ContainerRequestContext;
 import javax.ws.rs.container.ContainerResponseContext;
@@ -13,6 +15,8 @@ import org.jboss.resteasy.core.interception.jaxrs.SuspendableContainerResponseCo
 
 import com.github.mkouba.qute.Template;
 import com.github.mkouba.qute.Template.Rendering;
+import com.github.mkouba.qute.quarkus.Variant;
+import com.github.mkouba.qute.quarkus.VariantTemplate;
 
 @Provider
 public class TemplateResponseFilter implements ContainerResponseFilter {
@@ -28,11 +32,21 @@ public class TemplateResponseFilter implements ContainerResponseFilter {
             MediaType mediaType;
             Template.Rendering rendering = (Rendering) entity;
 
-            if (entity instanceof VariantRendering) {
-                VariantRendering variantRendering = (VariantRendering) entity;
-                variantRendering.selectVariant(requestContext.getRequest());
-                mediaType = TemplateVariantProducer.parseMediaType(variantRendering.getBaseName(),
-                        variantRendering.getSelectedVariant());
+            if (rendering.getAttribute(VariantTemplate.VARIANTS) != null) {
+                @SuppressWarnings("unchecked")
+                List<Variant> variants = (List<Variant>) rendering.getAttribute(VariantTemplate.VARIANTS);
+                javax.ws.rs.core.Variant selected = requestContext.getRequest()
+                        .selectVariant(variants.stream()
+                                .map(v -> new javax.ws.rs.core.Variant(MediaType.valueOf(v.mediaType), v.locale, v.encoding))
+                                .collect(Collectors.toList()));
+                if (selected != null) {
+                    rendering.putAttribute(VariantTemplate.SELECTED_VARIANT,
+                            new Variant(selected.getLanguage(), selected.getMediaType().toString(), selected.getEncoding()));
+                    mediaType = selected.getMediaType();
+                } else {
+                    // TODO we should use the default
+                    mediaType = null;
+                }
             } else {
                 // TODO how to get media type from non-variant templates?
                 mediaType = null;

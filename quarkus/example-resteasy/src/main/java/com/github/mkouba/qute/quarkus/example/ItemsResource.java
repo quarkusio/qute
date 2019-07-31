@@ -33,7 +33,7 @@ public class ItemsResource {
     @GET
     @Produces(MediaType.TEXT_HTML)
     public String items() {
-        return items.render().putData("items", dummyItems()).putData("limit", BigDecimal.valueOf(800)).asString();
+        return items.render().putData("items", dummyItems()).putData("limit", BigDecimal.valueOf(800)).getResult();
     }
 
     private List<Item> dummyItems() {

@@ -9,6 +9,11 @@ public abstract class RenderingBase implements Rendering {
 
     protected Object data;
     protected Map<String, Object> dataMap;
+    protected Map<String, Object> attributes;
+    
+    public RenderingBase() {
+        this.attributes = new HashMap<>();
+    }
 
     @Override
     public Rendering setData(Object data) {
@@ -27,6 +32,17 @@ public abstract class RenderingBase implements Rendering {
         return this;
     }
     
+    @Override
+    public Rendering putAttribute(String key, Object value) {
+        attributes.put(key, value);
+        return this;
+    }
+
+    @Override
+    public Object getAttribute(String key) {
+        return attributes.get(key);
+    }
+
     protected Object data() {
         return data != null ? data : dataMap;
     }

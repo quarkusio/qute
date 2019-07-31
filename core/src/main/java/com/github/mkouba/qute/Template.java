@@ -17,7 +17,7 @@ public interface Template {
      * @return the rendered template
      */
     default String render(Object data) {
-        return render().setData(data).asString();
+        return render().setData(data).getResult();
     }
 
     /**
@@ -51,11 +51,33 @@ public interface Template {
         Rendering putData(String key, Object data);
 
         /**
+         * 
+         * @param key
+         * @param value
+         * @return self
+         */
+        Rendering putAttribute(String key, Object value);
+
+        /**
+         * 
+         * @param key
+         * @return the attribute or null
+         */
+        Object getAttribute(String key);
+
+        /**
          * Triggers rendering.
          * 
-         * @return the rendered template
+         * @return the rendered template as string
          */
-        String asString();
+        String getResult();
+
+        /**
+         * Triggers rendering.
+         * 
+         * @return a completion stage that is completed once the rendering finished
+         */
+        CompletionStage<String> getResultAsync();
 
         /**
          * Each subscription triggers rendering.
@@ -72,7 +94,7 @@ public interface Template {
          * @return a completion stage that is completed once the rendering finished
          */
         CompletionStage<Void> consume(Consumer<String> consumer);
-        
+
     }
 
 }

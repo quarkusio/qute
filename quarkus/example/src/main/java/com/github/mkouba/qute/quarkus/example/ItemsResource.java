@@ -37,7 +37,7 @@ public class ItemsResource {
 
     @Route(path = "/items", methods = GET, produces = "text/html")
     public void items(RoutingExchange exchange) {
-        exchange.ok(items.render().putData("items", dummyItems()).asString());
+        exchange.ok(items.render().putData("items", dummyItems()).getResult());
     }
 
     private List<Item> dummyItems() {
