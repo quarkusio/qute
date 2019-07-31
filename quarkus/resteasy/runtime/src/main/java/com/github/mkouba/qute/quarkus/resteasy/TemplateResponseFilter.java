@@ -53,11 +53,10 @@ public class TemplateResponseFilter implements ContainerResponseFilter {
             }
 
             try {
-                StringBuilder buffer = new StringBuilder();
-                rendering.consume(chunk -> buffer.append(chunk))
+                rendering.getResultAsync()
                         .whenComplete((r, t) -> {
                             if (t == null) {
-                                Response resp = Response.ok(buffer.toString(), mediaType).build();
+                                Response resp = Response.ok(r, mediaType).build();
                                 // make sure we avoid setting a null media type because that causes
                                 // an NPE further down
                                 if (resp.getMediaType() != null) {
