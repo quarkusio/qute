@@ -355,7 +355,7 @@ NOTE: A `ValueResolver` is generated for all beans annotated with `@Named` so th
 
 === Configuration
 
-* `quarkus.qute.basePath` - a path relative from `META-INF/resources/`; all files in the base directory and its subdirectories are considered templates and watched for changes in the development mode
+* `quarkus.qute.base-path` - a path relative from `META-INF/resources/`; all files in the base directory and its subdirectories are considered templates and watched for changes in the development mode
 * `quarkus.qute.suffixes` - a set of suffixes used when attempting to locate a template; by default, `engine.getTemplate(foo)` would result in several lookups: `META-INF/resources/templates/foo`, `META-INF/resources/templates/foo.html` and `META-INF/resources/templates/foo.txt`
 
 === Template extension methods

@@ -71,6 +71,7 @@ public class QuteProcessor {
     @BuildStep
     AdditionalBeanBuildItem additionalBeans() {
         return AdditionalBeanBuildItem.builder()
+                .setUnremovable()
                 .addBeanClasses(EngineProducer.class, TemplateProducer.class, VariantTemplateProducer.class, ResourcePath.class,
                         Template.class)
                 .build();
@@ -232,16 +233,14 @@ public class QuteProcessor {
         Path templatesPath = applicationArchive.getChildPath(basePath);
 
         // Remove suffix from the path; e.g. "items.html" becomes "items"
-        Set<String> filePaths = templatePaths.stream().map(tp -> {
-            int idx = tp.getPath().lastIndexOf('.');
-            String path;
+        Set<String> filePaths = new HashSet<String>();
+        for (TemplatePathBuildItem templatePath : templatePaths) {
+            filePaths.add(templatePath.getPath());
+            int idx = templatePath.getPath().lastIndexOf('.');
             if (idx != -1) {
-                path = tp.getPath().substring(0, idx);
-            } else {
-                path = tp.getPath();
+                filePaths.add(templatePath.getPath().substring(0, idx));
             }
-            return path;
-        }).collect(Collectors.toSet());
+        }
 
         Set<String> variantBases = new HashSet<>();
 
