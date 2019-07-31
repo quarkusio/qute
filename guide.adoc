@@ -1,6 +1,12 @@
 = Qute 
 
-Our goal is to design a templating engine with simple syntax, async resolution and great extensibility.
+Goals:
+
+1. Simple syntax.
+2. Async data resolution.
+3. Great extensibility.
+4. Powerful https://quarkus.io/[Quarkus] integration.
+
 We believe that templates should contain minimal logic.
 And this attitude affects the syntax and APIs heavily.
 
@@ -314,7 +320,7 @@ If you want to use Qute in your Quarkus application add the following dependency
 ----
 
 An `Engine` instance is automatically configured and a bean is also registered.
-Moreover, it's possible to inject a template located in the `META-INF/resources/templates` directory: 
+Moreover, it's possible to inject templates located in the `META-INF/resources/templates` directory: 
 
 [source,java]
 ----
@@ -334,6 +340,18 @@ class MyBean {
 <1> If there is no qualifier provided the field name is used to locate the template. In this particular case, the container will attempt to locate a template with path `META-INF/resources/templates/items.html`.
 <2> This qualifier instructs the container to inject a template from a path relative from `META-INF/resources/templates`.
 <3> Inject the configured `Engine` instance.
+
+=== Injecting Beans In Templates
+
+Any CDI bean annotated with `@Named` can be referenced in any template by using the `inject:` namespace.
+
+[source,html]
+----
+{inject:myBean.price} <1>
+----
+<1> First, a bean with name `myBean` is found and then used as the base object.
+
+NOTE: A `ValueResolver` is generated for all beans annotated with `@Named` so that it's possible to invoke any method without reflection.
 
 === Configuration
 
@@ -405,7 +423,30 @@ Any instance of `Item` can be used directly in the template:
 ----
 <1> Let's suppose that `items` is resolved to a list of `Item` instances.
 
-=== Dev Mode
+=== Variant Templates
+
+Sometimes it could be useful to render a specific variant of the template based on the content negotiation.
+`VariantTemplate` is a perfect match for this use case:
+
+[source,java]
+----
+@Path("/detail")
+class DetailResource {
+  
+  @Inject
+  VariantTemplate item; <1>
+
+  @GET
+  @Produces({ MediaType.TEXT_HTML, MediaType.TEXT_PLAIN })
+  public Rendering item() {
+     return item.render().setData(new Item("Alpha", BigDecimal.valueOf(1000))); <2>
+  }
+}
+----
+<1> Inject a variant template with base path derived from the injected field - `META-INF/resources/templates/item`.
+<2> The resulting output depends on the `Accept` header received from the client. For `text/plain` the `META-INF/resources/templates/item.txt` template is used. For `text/html` the `META-INF/resources/templates/item.html` template is used.
+
+=== Development Mode
 
 All user-defined tags in `META-INF/resources/tags`, all files in `META-INF/resources/templates` and all injected templates are watched for changes.
 When a template is modified it is removed from the cache and the template source is parsed again.
