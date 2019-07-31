@@ -448,9 +448,9 @@ class DetailResource {
 
 === Development Mode
 
-All user-defined tags in `META-INF/resources/tags`, all files in `META-INF/resources/templates` and all injected templates are watched for changes.
+All files located in the `quarkus.qute.basePath` - `META-INF/resources/templates` by default - are watched for changes.
 When a template is modified it is removed from the cache and the template source is parsed again.
-There is no need to restart the whole app while modifying templates only.
+In other words, there is no need to rebuild/restart the application when only modifying the templates.
 
 == Extension Points
 
