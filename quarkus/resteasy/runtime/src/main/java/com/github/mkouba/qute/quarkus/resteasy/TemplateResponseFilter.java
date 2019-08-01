@@ -1,5 +1,8 @@
 package com.github.mkouba.qute.quarkus.resteasy;
 
+import static com.github.mkouba.qute.quarkus.VariantTemplate.SELECTED_VARIANT;
+import static com.github.mkouba.qute.quarkus.VariantTemplate.VARIANTS;
+
 import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -34,13 +37,13 @@ public class TemplateResponseFilter implements ContainerResponseFilter {
 
             if (rendering.getAttribute(VariantTemplate.VARIANTS) != null) {
                 @SuppressWarnings("unchecked")
-                List<Variant> variants = (List<Variant>) rendering.getAttribute(VariantTemplate.VARIANTS);
+                List<Variant> variants = (List<Variant>) rendering.getAttribute(VARIANTS);
                 javax.ws.rs.core.Variant selected = requestContext.getRequest()
                         .selectVariant(variants.stream()
                                 .map(v -> new javax.ws.rs.core.Variant(MediaType.valueOf(v.mediaType), v.locale, v.encoding))
                                 .collect(Collectors.toList()));
                 if (selected != null) {
-                    rendering.putAttribute(VariantTemplate.SELECTED_VARIANT,
+                    rendering.setAttribute(SELECTED_VARIANT,
                             new Variant(selected.getLanguage(), selected.getMediaType().toString(), selected.getEncoding()));
                     mediaType = selected.getMediaType();
                 } else {

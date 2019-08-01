@@ -16,7 +16,6 @@ public class MultiResultNode implements ResultNode {
             } catch (InterruptedException | ExecutionException e) {
                 throw new IllegalStateException(e);
             }
-
         }
         this.results = results;
     }

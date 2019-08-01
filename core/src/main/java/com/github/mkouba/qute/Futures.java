@@ -5,7 +5,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.ExecutionException;
 
 class Futures {
 
@@ -14,9 +13,10 @@ class Futures {
         failure.completeExceptionally(t);
         return failure;
     }
-    
+
     @SuppressWarnings("unchecked")
-    static CompletionStage<Map<String, Object>>  evaluateParams(Map<String, Expression> parameters, ResolutionContext resolutionContext) {
+    static CompletionStage<Map<String, Object>> evaluateParams(Map<String, Expression> parameters,
+            ResolutionContext resolutionContext) {
         CompletableFuture<Map<String, Object>> result = new CompletableFuture<>();
         CompletableFuture<Object>[] results = new CompletableFuture[parameters.size()];
         int idx = 0;
@@ -34,10 +34,11 @@ class Futures {
                     for (Entry<String, Expression> entry : parameters.entrySet()) {
                         paramValues.put(entry.getKey(), results[j++].get());
                     }
-                } catch (InterruptedException | ExecutionException e) {
-                    throw new IllegalStateException(e);
+                    result.complete(paramValues);
+                } catch (Exception e) {
+                    result.completeExceptionally(e);
                 }
-                result.complete(paramValues);
+
             }
         });
         return result;

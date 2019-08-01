@@ -57,7 +57,9 @@ import io.quarkus.deployment.builditem.ApplicationArchivesBuildItem;
 import io.quarkus.deployment.builditem.GeneratedClassBuildItem;
 import io.quarkus.deployment.builditem.HotDeploymentWatchedFileBuildItem;
 import io.quarkus.deployment.builditem.ServiceStartBuildItem;
+import io.quarkus.deployment.builditem.substrate.ReflectiveClassBuildItem;
 import io.quarkus.deployment.builditem.substrate.ServiceProviderBuildItem;
+import io.quarkus.deployment.builditem.substrate.SubstrateResourceBuildItem;
 import io.quarkus.gizmo.ClassOutput;
 
 public class QuteProcessor {
@@ -80,7 +82,8 @@ public class QuteProcessor {
     @BuildStep
     void generateValueResolvers(BuildProducer<GeneratedClassBuildItem> generatedClass,
             BeanArchiveIndexBuildItem beanArchiveIndex, ApplicationArchivesBuildItem applicationArchivesBuildItem,
-            BuildProducer<GeneratedValueResolverBuildItem> generatedResolvers) {
+            BuildProducer<GeneratedValueResolverBuildItem> generatedResolvers,
+            BuildProducer<ReflectiveClassBuildItem> reflectiveClass) {
 
         IndexView index = beanArchiveIndex.getIndex();
         Predicate<String> appClassPredicate = new Predicate<String>() {
@@ -148,8 +151,11 @@ public class QuteProcessor {
         }
         generateTypes.addAll(extensionMethodGenerator.getGeneratedTypes());
 
+        LOGGER.debug("Generated types: {}", generateTypes);
+
         for (String generateType : generateTypes) {
-            generatedResolvers.produce(new GeneratedValueResolverBuildItem(generateType.replace("/", ".")));
+            generatedResolvers.produce(new GeneratedValueResolverBuildItem(generateType));
+            reflectiveClass.produce(new ReflectiveClassBuildItem(false, false, generateType));
         }
     }
 
@@ -186,16 +192,16 @@ public class QuteProcessor {
     @BuildStep
     void collectTemplates(QuteConfig config, ApplicationArchivesBuildItem applicationArchivesBuildItem,
             BeanArchiveIndexBuildItem beanArchiveIndex,
-            BuildProducer<HotDeploymentWatchedFileBuildItem> hotDeploymentFiles,
-            BuildProducer<TemplatePathBuildItem> templatePaths)
+            BuildProducer<HotDeploymentWatchedFileBuildItem> watchedPaths,
+            BuildProducer<TemplatePathBuildItem> templatePaths,
+            BuildProducer<SubstrateResourceBuildItem> substrateResources)
             throws IOException {
-        Set<String> watchedPaths = new HashSet<>();
         ApplicationArchive applicationArchive = applicationArchivesBuildItem.getRootArchive();
         String basePath = "META-INF/resources/" + config.basePath + "/";
         Path templatesPath = applicationArchive.getChildPath(basePath);
 
         if (templatesPath != null) {
-            scan(templatesPath, templatesPath, basePath, watchedPaths, templatePaths);
+            scan(templatesPath, templatesPath, basePath, watchedPaths, templatePaths, substrateResources);
         }
 
         String tagBasePath = basePath + "tags/";
@@ -208,17 +214,8 @@ public class QuteProcessor {
                 Path path = tagFiles.next();
                 String tagPath = path.getFileName().toString();
                 LOGGER.debug("Found tag: {}", path);
-                watchedPaths.add(tagBasePath + tagPath);
-                templatePaths.produce(new TemplatePathBuildItem(tagPath, true));
+                produceTemplateBuildItems(templatePaths, watchedPaths, substrateResources, tagBasePath, tagPath, true);
             }
-        }
-
-        for (String path : watchedPaths) {
-            if (path.isEmpty()) {
-                continue;
-            }
-            LOGGER.debug("Watching template path: {}", path);
-            hotDeploymentFiles.produce(new HotDeploymentWatchedFileBuildItem(path, false));
         }
     }
 
@@ -309,12 +306,20 @@ public class QuteProcessor {
             BeanContainerBuildItem beanContainer,
             List<ServiceStartBuildItem> startedServices) {
 
+        List<String> templates = new ArrayList<>();
+        List<String> tags = new ArrayList<>();
+        for (TemplatePathBuildItem templatePath : templatePaths) {
+            if (templatePath.isTag()) {
+                tags.add(templatePath.getPath());
+            } else {
+                templates.add(templatePath.getPath());
+            }
+        }
+
         recorder.initEngine(config, beanContainer.getValue(), generatedValueResolvers.stream()
                 .map(GeneratedValueResolverBuildItem::getClassName).collect(Collectors.toList()),
-                templatePaths.stream().filter(TemplatePathBuildItem::isRegular).map(TemplatePathBuildItem::getPath)
-                        .collect(Collectors.toList()),
-                templatePaths.stream().filter(TemplatePathBuildItem::isTag).map(TemplatePathBuildItem::getPath)
-                        .collect(Collectors.toList()));
+                templates,
+                tags);
 
         Map<String, List<String>> variants;
         if (templateVariants.isPresent()) {
@@ -335,20 +340,31 @@ public class QuteProcessor {
         throw new IllegalArgumentException();
     }
 
-    private void scan(Path root, Path directory, String basePath, Set<String> watchedPaths,
-            BuildProducer<TemplatePathBuildItem> templatePaths) throws IOException {
+    private static void produceTemplateBuildItems(BuildProducer<TemplatePathBuildItem> templatePaths,
+            BuildProducer<HotDeploymentWatchedFileBuildItem> watchedPaths,
+            BuildProducer<SubstrateResourceBuildItem> substrateResources, String basePath, String filePath, boolean tag) {
+        if (filePath.isEmpty()) {
+            return;
+        }
+        String fullPath = basePath + filePath;
+        watchedPaths.produce(new HotDeploymentWatchedFileBuildItem(fullPath, false));
+        substrateResources.produce(new SubstrateResourceBuildItem(fullPath));
+        templatePaths.produce(new TemplatePathBuildItem(filePath, tag));
+    }
+
+    private void scan(Path root, Path directory, String basePath, BuildProducer<HotDeploymentWatchedFileBuildItem> watchedPaths,
+            BuildProducer<TemplatePathBuildItem> templatePaths, BuildProducer<SubstrateResourceBuildItem> substrateResources)
+            throws IOException {
         Iterator<Path> files = Files.list(directory).iterator();
         while (files.hasNext()) {
             Path path = files.next();
             if (Files.isRegularFile(path)) {
                 LOGGER.debug("Found template: {}", path);
                 String templatePath = root.relativize(path).toString();
-                if (watchedPaths.add(basePath + templatePath)) {
-                    templatePaths.produce(new TemplatePathBuildItem(templatePath));
-                }
-            } else if (Files.isDirectory(path)) {
+                produceTemplateBuildItems(templatePaths, watchedPaths, substrateResources, basePath, templatePath, false);
+            } else if (Files.isDirectory(path) && !path.getFileName().toString().equals("tags")) {
                 LOGGER.debug("Scan directory: {}", path);
-                scan(root, path, basePath, watchedPaths, templatePaths);
+                scan(root, path, basePath, watchedPaths, templatePaths, substrateResources);
             }
         }
     }

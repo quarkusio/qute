@@ -32,6 +32,11 @@ public interface Template {
     interface Rendering {
 
         /**
+         * Attribute key - the timeout for {@link #getResult()} in milliseconds.
+         */
+        String TIMEOUT = "timeout";
+
+        /**
          * Set the the root context object. Invocation of this method removes a map produced previously by
          * {@link #putData(String, Object)}.
          * 
@@ -56,7 +61,7 @@ public interface Template {
          * @param value
          * @return self
          */
-        Rendering putAttribute(String key, Object value);
+        Rendering setAttribute(String key, Object value);
 
         /**
          * 
@@ -66,7 +71,7 @@ public interface Template {
         Object getAttribute(String key);
 
         /**
-         * Triggers rendering.
+         * Triggers rendering. Note that this method blocks the current thread!
          * 
          * @return the rendered template as string
          */

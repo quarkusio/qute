@@ -99,7 +99,7 @@ public class ExtensionMethodGenerator {
 
         String suffix = SUFFIX + "_" + method.name() + "_" + sha1(method.parameters().toString());
         String generatedName = generatedNameFromTarget(targetPackage, baseName, suffix);
-        generatedTypes.add(generatedName);
+        generatedTypes.add(generatedName.replace('/', '.'));
 
         ClassCreator valueResolver = ClassCreator.builder().classOutput(classOutput).className(generatedName)
                 .interfaces(ValueResolver.class).build();

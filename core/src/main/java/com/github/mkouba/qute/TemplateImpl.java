@@ -29,13 +29,13 @@ class TemplateImpl implements Template {
 
         @Override
         public String getResult() {
-            String result;
             try {
-                result = getResultAsync().toCompletableFuture().get(10, TimeUnit.SECONDS);
+                Object timeoutAttr = getAttribute(TIMEOUT);
+                long timeout = timeoutAttr != null ? Long.parseLong(timeoutAttr.toString()) : 10000;
+                return getResultAsync().toCompletableFuture().get(timeout, TimeUnit.MILLISECONDS);
             } catch (InterruptedException | ExecutionException | TimeoutException e) {
                 throw new IllegalStateException(e);
             }
-            return result;
         }
 
         @Override

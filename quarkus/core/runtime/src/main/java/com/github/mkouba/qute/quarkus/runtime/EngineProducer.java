@@ -49,8 +49,8 @@ public class EngineProducer {
         LOGGER.debug("Initializing Qute with: {}", resolverClasses);
 
         suffixes = config.suffixes;
-        basePath = "META-INF/resources/" + config.basePath + "/";
-        tagPath = basePath.endsWith("/") ? basePath + "tags/" : basePath + "/tags/";
+        basePath = "META-INF/resources/" + (config.basePath.endsWith("/") ? config.basePath : config.basePath + "/");
+        tagPath = basePath + "tags/";
 
         EngineBuilder builder = Engine.builder()
                 .addDefaultSectionHelpers().addDefaultValueResolvers();

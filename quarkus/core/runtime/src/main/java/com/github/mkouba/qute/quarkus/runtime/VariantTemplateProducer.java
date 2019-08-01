@@ -110,7 +110,7 @@ public class VariantTemplateProducer {
 
         VariantRenderingImpl(TemplateVariants variants) {
             this.variants = variants;
-            putAttribute(VariantTemplate.VARIANTS, new ArrayList<>(variants.variantToTemplate.keySet()));
+            setAttribute(VariantTemplate.VARIANTS, new ArrayList<>(variants.variantToTemplate.keySet()));
         }
 
         @Override

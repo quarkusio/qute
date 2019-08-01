@@ -33,7 +33,7 @@ public abstract class RenderingBase implements Rendering {
     }
     
     @Override
-    public Rendering putAttribute(String key, Object value) {
+    public Rendering setAttribute(String key, Object value) {
         attributes.put(key, value);
         return this;
     }

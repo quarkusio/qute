@@ -116,7 +116,7 @@ public class ValueResolverGenerator {
         }
         String targetPackage = packageName(clazz.name());
         String generatedName = generatedNameFromTarget(targetPackage, baseName, SUFFIX);
-        generatedTypes.add(generatedName);
+        generatedTypes.add(generatedName.replace('/', '.'));
 
         ClassCreator valueResolver = ClassCreator.builder().classOutput(classOutput).className(generatedName)
                 .interfaces(ValueResolver.class).build();

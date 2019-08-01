@@ -30,9 +30,9 @@ public class VariantTemplateTest {
     @Test
     public void testRendering() {
         Rendering rendering = simpleBean.foo.render().setData("bar");
-        rendering.putAttribute(VariantTemplate.SELECTED_VARIANT, new Variant(null, "text/plain", null));
+        rendering.setAttribute(VariantTemplate.SELECTED_VARIANT, new Variant(null, "text/plain", null));
         assertEquals("bar", rendering.getResult());
-        rendering.putAttribute(VariantTemplate.SELECTED_VARIANT, new Variant(null, "text/html", null));
+        rendering.setAttribute(VariantTemplate.SELECTED_VARIANT, new Variant(null, "text/html", null));
         assertEquals("<strong>bar</strong>", rendering.getResult());
     }
 

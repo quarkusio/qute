@@ -24,19 +24,25 @@ public class UserTagSectionHelper implements SectionHelper {
     @Override
     public CompletionStage<ResultNode> resolve(SectionResolutionContext context) {
         CompletableFuture<ResultNode> result = new CompletableFuture<>();
-        evaluateParams(parameters, context.resolutionContext()).whenComplete((r, t) -> {
-            if (t != null) {
-                result.completeExceptionally(t);
+        evaluateParams(parameters, context.resolutionContext()).whenComplete((r1, t1) -> {
+            if (t1 != null) {
+                result.completeExceptionally(t1);
             } else {
                 // Execute the template with the params as the root context object
-                ((TemplateImpl) templateSupplier.get()).root.resolve(context.resolutionContext().createChild(r, null))
-                        .whenComplete((resultNode, t2) -> {
-                            if (t2 != null) {
-                                result.completeExceptionally(t2);
-                            } else {
-                                result.complete(resultNode);
-                            }
-                        });
+                try {
+                    TemplateImpl tagTemplate = (TemplateImpl) templateSupplier.get();
+                    tagTemplate.root.resolve(context.resolutionContext().createChild(r1, null))
+                            .whenComplete((r2, t2) -> {
+                                if (t2 != null) {
+                                    result.completeExceptionally(t2);
+                                } else {
+                                    result.complete(r2);
+                                }
+                            });
+                } catch (Exception e) {
+                    result.completeExceptionally(e);
+                }
+
             }
         });
         return result;
@@ -72,7 +78,7 @@ public class UserTagSectionHelper implements SectionHelper {
                 public Template get() {
                     Template template = context.getEngine().getTemplate(name);
                     if (template == null) {
-                        throw new IllegalStateException("Template not found: " + name);
+                        throw new IllegalStateException("Tag template not found: " + name);
                     }
                     return template;
                 }
