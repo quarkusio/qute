@@ -11,7 +11,7 @@
     </parent>
     <modelVersion>4.0.0</modelVersion>
 
-    <artifactId>qute-quarkus-example</artifactId>
+    <artifactId>qute-quarkus-example-vertx</artifactId>
 
     <dependencies>
         <dependency>

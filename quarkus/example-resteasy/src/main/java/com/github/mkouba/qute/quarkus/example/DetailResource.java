@@ -36,6 +36,7 @@ public class DetailResource {
     @GET
     @Produces({ MediaType.TEXT_HTML, MediaType.TEXT_PLAIN })
     public TemplateInstance item2() {
+        // TODO remove once we are fine with VariantTemplate API 
         return new TemplateInstance(new Item("Alpha", BigDecimal.valueOf(1000)));
     }
 
@@ -50,7 +51,7 @@ public class DetailResource {
     @GET
     @Produces(MediaType.TEXT_PLAIN)
     public CompletionStage<String> itemMail() {
-        // WE NEED A MOCK MAILER
+        // TODO remove once we have a replacement for MailInstance
         return new MailInstance(new Item("Alpha", BigDecimal.valueOf(1000)))
                 .subject("TEST")
                 .from("stef@epardaud.fr")

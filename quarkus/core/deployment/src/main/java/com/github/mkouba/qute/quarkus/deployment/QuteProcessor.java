@@ -75,7 +75,7 @@ public class QuteProcessor {
         return AdditionalBeanBuildItem.builder()
                 .setUnremovable()
                 .addBeanClasses(EngineProducer.class, TemplateProducer.class, VariantTemplateProducer.class, ResourcePath.class,
-                        Template.class)
+                        Template.class, Template.Rendering.class)
                 .build();
     }
 
