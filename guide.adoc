@@ -1,4 +1,9 @@
+:toc:
+:toc-placement!:
+
 = Qute 
+
+toc::[]
 
 Goals:
 
