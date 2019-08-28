@@ -99,6 +99,18 @@ public class SimpleTest {
     public void testComment() {
         assertEquals("OK",
                 Engine.builder().build().parse("{! This is my comment}OK").render(null));
+        assertEquals("<h1>Foo</h1>",
+                Engine.builder().addDefaultSectionHelpers().build().parse("{#if true}\n" +
+                        "<h1>Foo</h1>\n" +
+                        "{/}\n" +
+                        "{! :else}\n" +
+                        "{! \n" +
+                        " <h1>Bar</h1>\n" +
+                        "}\n" +
+                        "{! /}").render(null).trim());
+        assertEquals("",
+                Engine.builder().addDefaultSectionHelpers().addSectionHelper(new SkipSectionHelper.Factory()).build()
+                        .parse("{#skip} {#if true}OK{/}NOK{/skip}").render(null));
     }
 
     @Test
