@@ -28,7 +28,7 @@ Engine engine = Engine.builder().addDefaultValueResolvers().addDefaultSectionHel
 
 `Engine` represents a central point for template management.
 It has a dedicated configuration and a template cache.
-It's possible to parse a template and render our first "hello world":
+Once we have an engine it's possible to parse a template and render our first "hello world":
 
 [source,java]
 ----
@@ -55,16 +55,15 @@ This locator is used whenever the `Engine.getTemplate()` method is called and th
 
 Dynamic parts of a template include:
 
-* expression: `{foo}`, `{item.get(name)}`, `{global:colors}`, `{name ?: 'John'}`
+* expressions: `{foo}`, `{item.get(name)}`, `{global:colors}`, `{name ?: 'John'}`
 * sections: `{#if foo} Foo is true {/if}`
 ** the name in the closing tag is optional: `{#if foo} Foo is true {/}`
 ** a section can be empty: `{#userTag image=true /}`
-
-An expression whose content starts with `!` is a comment and is ignored.
+* comments: `{! This is a comment}`, `{! foo.bar}`, `{! #if true}`
 
 === Expressions
 
-An expression consists of an optional namespace followed by a colon `:` and parts separated by a dot `.`.
+An expression consists of an optional namespace followed by a colon `:` and parts separated by dot `.`.
 The first part of the expression is always resolved against the <<current_context_object, current context object>>.
 For an expression that starts with a namespace the current context object is found using the available `NamespaceResolver`s.
 For an expression that does not start with a namespace the current context object is *derived from the position* of the tag.
