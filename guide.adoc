@@ -400,9 +400,9 @@ This template extension method makes it possible to render the following templat
 
 === Template data
 
- A value resolver is automatically generated for a type annotated with `@TemplateData`.
- Note that non-public members, constructors, static initializers, static, synthetic and void methods are always ignored.
- This way Quarkus does not need to use reflection to access the data in your classes.
+A value resolver is automatically generated for a type annotated with `@TemplateData`.
+Note that non-public members, constructors, static initializers, static, synthetic and void methods are always ignored.
+This allows Quarkus to avoid using reflection to access the data in your classes.
 
 [source,java]
 ----
