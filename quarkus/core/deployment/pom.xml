@@ -4,7 +4,7 @@
     xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <parent>
         <artifactId>qute-quarkus-core-parent</artifactId>
-        <groupId>com.github.mkouba.qute</groupId>
+        <groupId>io.quarkus.qute</groupId>
         <version>1.0-SNAPSHOT</version>
         <relativePath>../</relativePath>
     </parent>
@@ -22,11 +22,11 @@
             <artifactId>quarkus-arc-deployment</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.github.mkouba.qute</groupId>
+            <groupId>io.quarkus.qute</groupId>
             <artifactId>qute-generator</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.github.mkouba.qute</groupId>
+            <groupId>io.quarkus.qute</groupId>
             <artifactId>qute-quarkus</artifactId>
         </dependency>
         <dependency>

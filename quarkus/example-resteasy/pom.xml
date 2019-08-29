@@ -5,7 +5,7 @@
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <parent>
         <artifactId>qute-quarkus-parent</artifactId>
-        <groupId>com.github.mkouba.qute</groupId>
+        <groupId>io.quarkus.qute</groupId>
         <version>1.0-SNAPSHOT</version>
         <relativePath>../</relativePath>
     </parent>
@@ -27,7 +27,7 @@
             <artifactId>quarkus-mailer</artifactId>
         </dependency>
         <dependency>
-            <groupId>com.github.mkouba.qute</groupId>
+            <groupId>io.quarkus.qute</groupId>
             <artifactId>qute-quarkus-resteasy</artifactId>
         </dependency>
         <dependency>

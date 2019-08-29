@@ -318,7 +318,7 @@ If you want to use Qute in your Quarkus application add the following dependency
 [source,xml]
 ----
 <dependency>
-   <groupId>com.github.mkouba.qute</groupId>
+   <groupId>io.quarkus.qute</groupId>
    <artifactId>qute-quarkus</artifactId>
 </dependency>
 ----

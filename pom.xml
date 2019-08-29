@@ -4,7 +4,7 @@
     xmlns="http://maven.apache.org/POM/4.0.0"
     xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
     <modelVersion>4.0.0</modelVersion>
-    <groupId>com.github.mkouba.qute</groupId>
+    <groupId>io.quarkus.qute</groupId>
     <artifactId>qute-parent</artifactId>
     <packaging>pom</packaging>
     <version>1.0-SNAPSHOT</version>
@@ -31,37 +31,37 @@
     <dependencyManagement>
         <dependencies>
             <dependency>
-                <groupId>com.github.mkouba.qute</groupId>
+                <groupId>io.quarkus.qute</groupId>
                 <artifactId>qute-core</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.github.mkouba.qute</groupId>
+                <groupId>io.quarkus.qute</groupId>
                 <artifactId>qute-generator</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.github.mkouba.qute</groupId>
+                <groupId>io.quarkus.qute</groupId>
                 <artifactId>qute-rxjava</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.github.mkouba.qute</groupId>
+                <groupId>io.quarkus.qute</groupId>
                 <artifactId>qute-quarkus</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.github.mkouba.qute</groupId>
+                <groupId>io.quarkus.qute</groupId>
                 <artifactId>qute-quarkus-deployment</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.github.mkouba.qute</groupId>
+                <groupId>io.quarkus.qute</groupId>
                 <artifactId>qute-quarkus-resteasy</artifactId>
                 <version>${project.version}</version>
             </dependency>
             <dependency>
-                <groupId>com.github.mkouba.qute</groupId>
+                <groupId>io.quarkus.qute</groupId>
                 <artifactId>qute-quarkus-resteasy-deployment</artifactId>
                 <version>${project.version}</version>
             </dependency>
