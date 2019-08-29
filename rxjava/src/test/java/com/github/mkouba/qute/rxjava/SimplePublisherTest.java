@@ -13,8 +13,8 @@ import org.eclipse.microprofile.reactive.streams.operators.ReactiveStreams;
 import org.junit.jupiter.api.Test;
 import org.reactivestreams.Publisher;
 
-import com.github.mkouba.qute.Engine;
-import com.github.mkouba.qute.Template;
+import io.quarkus.qute.Engine;
+import io.quarkus.qute.Template;
 
 public class SimplePublisherTest {
 

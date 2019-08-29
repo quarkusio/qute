@@ -11,8 +11,9 @@ import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
-import com.github.mkouba.qute.Template.Rendering;
-
+import io.quarkus.qute.Template.Rendering;
+import io.quarkus.qute.api.Variant;
+import io.quarkus.qute.api.VariantTemplate;
 import io.quarkus.test.QuarkusUnitTest;
 
 public class VariantTemplateTest {

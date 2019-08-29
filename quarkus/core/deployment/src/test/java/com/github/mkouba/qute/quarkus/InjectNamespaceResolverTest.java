@@ -11,8 +11,7 @@ import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.RegisterExtension;
 
-import com.github.mkouba.qute.Template;
-
+import io.quarkus.qute.Template;
 import io.quarkus.test.QuarkusUnitTest;
 
 public class InjectNamespaceResolverTest {
