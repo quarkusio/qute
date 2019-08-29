@@ -22,5 +22,18 @@ public class ParserTest {
             assertTrue(message.contains("for"));
         }
     }
+    
+    @Test
+    public void testUnterminatedTag() {
+        Engine engine = Engine.builder().addDefaultSectionHelpers()
+                .build();
+        try {
+            engine.parse("{#if test}Hello {name}");
+            fail();
+        } catch (IllegalStateException expected) {
+            String message = expected.getMessage();
+            assertTrue(message.contains("if"));
+        }
+    }
 
 }

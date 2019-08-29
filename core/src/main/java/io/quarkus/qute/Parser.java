@@ -24,6 +24,7 @@ import io.quarkus.qute.SectionHelperFactory.ParametersInfo;
 class Parser {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Parser.class);
+    private static final String ROOT_HELPER_NAME = "$root";
 
     private final EngineImpl engine;
 
@@ -44,19 +45,20 @@ class Parser {
         this.buffer = new StringBuilder();
         this.sectionStack = new ArrayDeque<>();
         this.sectionStack
-                .addFirst(SectionNode.builder("root").setEngine(engine).setHelperFactory(new SectionHelperFactory<SectionHelper>() {
-                    @Override
-                    public SectionHelper initialize(SectionInitContext context) {
-                        return new SectionHelper() {
-
+                .addFirst(SectionNode.builder(ROOT_HELPER_NAME).setEngine(engine)
+                        .setHelperFactory(new SectionHelperFactory<SectionHelper>() {
                             @Override
-                            public CompletionStage<ResultNode> resolve(SectionResolutionContext context) {
-                                return context.execute();
-                            }
-                        };
-                    }
+                            public SectionHelper initialize(SectionInitContext context) {
+                                return new SectionHelper() {
 
-                }));
+                                    @Override
+                                    public CompletionStage<ResultNode> resolve(SectionResolutionContext context) {
+                                        return context.execute();
+                                    }
+                                };
+                            }
+
+                        }));
         this.sectionBlockStack = new ArrayDeque<>();
         this.sectionBlockStack.addFirst(SectionBlock.builder("main"));
         this.sectionBlockIdx = 0;
@@ -87,6 +89,9 @@ class Parser {
             SectionNode.Builder root = sectionStack.peek();
             if (root == null) {
                 throw new IllegalStateException("No root section found!");
+            }
+            if (!root.helperName.equals(ROOT_HELPER_NAME)) {
+                throw new IllegalStateException("The last section on the stack is not a root but: " + root.helperName);
             }
             SectionBlock.Builder part = sectionBlockStack.peek();
             if (part == null) {
