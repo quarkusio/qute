@@ -242,7 +242,7 @@ class Parser {
                 sectionBlockStack.peek().addNode(section.build());
             }
         } else if (content.charAt(0) != '!') {
-            sectionBlockStack.peek().addNode(new ExpressionNode(content));
+            sectionBlockStack.peek().addNode(new ExpressionNode(content, engine));
         }
         this.buffer = new StringBuilder();
     }

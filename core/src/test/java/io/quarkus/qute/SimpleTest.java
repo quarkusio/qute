@@ -2,6 +2,7 @@ package io.quarkus.qute;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -11,15 +12,7 @@ import java.util.concurrent.CompletionStage;
 
 import org.junit.jupiter.api.Test;
 
-import io.quarkus.qute.Engine;
-import io.quarkus.qute.EvalContext;
-import io.quarkus.qute.IfSectionHelper;
-import io.quarkus.qute.ImmutableList;
-import io.quarkus.qute.LoopSectionHelper;
-import io.quarkus.qute.SkipSectionHelper;
-import io.quarkus.qute.Template;
-import io.quarkus.qute.ValueResolver;
-import io.quarkus.qute.ValueResolvers;
+import io.quarkus.qute.Results.Result;
 
 public class SimpleTest {
 
@@ -128,6 +121,58 @@ public class SimpleTest {
         assertEquals("",
                 Engine.builder().addValueResolver(ValueResolvers.thisResolver())
                         .addSectionHelper(new IfSectionHelper.Factory()).build().parse("{#if true /}")
+                        .render(Collections.emptyList()));
+    }
+
+    @Test
+    public void testNotFound() {
+        assertEquals("{foo.bar} Collection size: 0",
+                Engine.builder().addDefaultValueResolvers()
+                        .addResultMapper(new ResultMapper() {
+
+                            public int getPriority() {
+                                return 10;
+                            }
+
+                            public boolean appliesTo(Object val) {
+                                return val.equals(Result.NOT_FOUND);
+                            }
+
+                            @Override
+                            public String map(Object result, Expression expression) {
+                                return expression.toOriginalString();
+                            }
+                        }).addResultMapper(new ResultMapper() {
+
+                            public int getPriority() {
+                                return 1;
+                            }
+
+                            public boolean appliesTo(Object val) {
+                                return val.equals(Result.NOT_FOUND);
+                            }
+
+                            @Override
+                            public String map(Object result, Expression expression) {
+                                return "fooo";
+                            }
+                        }).addResultMapper(new ResultMapper() {
+
+                            public int getPriority() {
+                                return 1;
+                            }
+
+                            public boolean appliesTo(Object val) {
+                                return val instanceof Collection;
+                            }
+
+                            @Override
+                            public String map(Object result, Expression expression) {
+                                Collection<?> collection = (Collection<?>) result;
+                                return "Collection size: " + collection.size();
+                            }
+                        }).build()
+                        .parse("{foo.bar} {this}")
                         .render(Collections.emptyList()));
     }
 

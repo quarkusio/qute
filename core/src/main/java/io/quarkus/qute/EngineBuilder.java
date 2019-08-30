@@ -24,12 +24,14 @@ public final class EngineBuilder {
     private final List<ValueResolver> valueResolvers;
     private final List<NamespaceResolver> namespaceResolvers;
     private final List<Function<String, Optional<Reader>>> locators;
+    private final List<ResultMapper> resultMappers;
 
     EngineBuilder() {
         this.sectionHelperFactories = new HashMap<>();
         this.valueResolvers = new ArrayList<>();
         this.namespaceResolvers = new ArrayList<>();
         this.locators = new ArrayList<>();
+        this.resultMappers = new ArrayList<>();
     }
 
     public EngineBuilder addSectionHelper(SectionHelperFactory<?> factory) {
@@ -93,6 +95,7 @@ public final class EngineBuilder {
      * 
      * @param locator
      * @return self
+     * @return self
      * @see Engine#getTemplate(String)
      */
     public EngineBuilder addLocator(Function<String, Optional<Reader>> locator) {
@@ -100,8 +103,18 @@ public final class EngineBuilder {
         return this;
     }
 
+    /**
+     * 
+     * @param resultMapper
+     * @return self
+     */
+    public EngineBuilder addResultMapper(ResultMapper mapper) {
+        this.resultMappers.add(mapper);
+        return this;
+    }
+
     public Engine build() {
-        return new EngineImpl(sectionHelperFactories, valueResolvers, namespaceResolvers, locators);
+        return new EngineImpl(sectionHelperFactories, valueResolvers, namespaceResolvers, locators, resultMappers);
     }
 
 }

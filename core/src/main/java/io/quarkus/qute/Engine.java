@@ -24,6 +24,12 @@ public interface Engine {
     public Evaluator getEvaluator();
 
     /**
+     * 
+     * @return an immutable list of result mappers
+     */
+    public List<ResultMapper> getResultMappers();
+
+    /**
      *
      * @param id
      * @param template
@@ -40,12 +46,12 @@ public interface Engine {
      * @see EngineBuilder#addLocator(java.util.function.Function)
      */
     public Template getTemplate(String id);
-    
+
     /**
      * Removes all templates from the cache.
      */
     public void clearTemplates();
-    
+
     /**
      * Removes the templates for which the mapping id matches the given predicate.
      * 

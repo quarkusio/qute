@@ -11,16 +11,7 @@ import java.util.function.Supplier;
 /**
  * Value resolver.
  */
-public interface ValueResolver extends Resolver {
-
-    int DEFAULT_PRIORITY = 1;
-
-    /**
-     * @return the priority value
-     */
-    default int getPriority() {
-        return DEFAULT_PRIORITY;
-    }
+public interface ValueResolver extends Resolver, WithPriority {
 
     /**
      * 

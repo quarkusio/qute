@@ -1,6 +1,7 @@
 package io.quarkus.qute;
 
 import java.util.Collections;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -62,6 +63,23 @@ public final class Expression {
         StringBuilder builder = new StringBuilder();
         builder.append("Expression [namespace=").append(namespace).append(", parts=").append(parts).append(", literal=")
                 .append(literal).append("]");
+        return builder.toString();
+    }
+
+    public String toOriginalString() {
+        StringBuilder builder = new StringBuilder();
+        builder.append("{");
+        if (namespace != null) {
+            builder.append(namespace);
+            builder.append(":");
+        }
+        for (Iterator<String> iterator = parts.iterator(); iterator.hasNext();) {
+            builder.append(iterator.next());
+            if (iterator.hasNext()) {
+                builder.append(".");
+            }
+        }
+        builder.append("}");
         return builder.toString();
     }
 

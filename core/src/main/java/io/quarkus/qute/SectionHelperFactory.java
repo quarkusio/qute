@@ -51,7 +51,7 @@ public interface SectionHelperFactory<T extends SectionHelper> {
 
         List<SectionBlock> getBlocks();
         
-        EngineImpl getEngine();
+        Engine getEngine();
         
     }
     

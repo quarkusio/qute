@@ -3,6 +3,9 @@ package io.quarkus.qute;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -31,12 +34,14 @@ class EngineImpl implements Engine {
     private final Evaluator evaluator;
     private final Map<String, Template> templates;
     private final List<Function<String, Optional<Reader>>> locators;
+    private final List<ResultMapper> resultMappers;
     private final PublisherFactory publisherFactory;
 
     EngineImpl(Map<String, SectionHelperFactory<?>> sectionHelperFactories, List<ValueResolver> valueResolvers,
-            List<NamespaceResolver> namespaceResolvers, List<Function<String, Optional<Reader>>> locators) {
+            List<NamespaceResolver> namespaceResolvers, List<Function<String, Optional<Reader>>> locators,
+            List<ResultMapper> resultMappers) {
         this.sectionHelperFactories = new HashMap<>(sectionHelperFactories);
-        this.valueResolvers = ImmutableList.copyOf(valueResolvers);
+        this.valueResolvers = sort(valueResolvers);
         this.namespaceResolvers = ImmutableList.copyOf(namespaceResolvers);
         this.evaluator = new EvaluatorImpl(this.valueResolvers);
         this.templates = new ConcurrentHashMap<>();
@@ -44,13 +49,16 @@ class EngineImpl implements Engine {
         ServiceLoader<PublisherFactory> loader = ServiceLoader.load(PublisherFactory.class);
         Iterator<PublisherFactory> iterator = loader.iterator();
         if (iterator.hasNext()) {
-            this.publisherFactory = iterator.next();    
+            this.publisherFactory = iterator.next();
         } else {
             this.publisherFactory = null;
         }
         if (iterator.hasNext()) {
-            throw new IllegalStateException("Multiple reactive factories found: " + StreamSupport.stream(loader.spliterator(), false).map(Object::getClass).map(Class::getName).collect(Collectors.joining(",")));
+            throw new IllegalStateException(
+                    "Multiple reactive factories found: " + StreamSupport.stream(loader.spliterator(), false)
+                            .map(Object::getClass).map(Class::getName).collect(Collectors.joining(",")));
         }
+        this.resultMappers = sort(resultMappers);
     }
 
     public Template parse(String content) {
@@ -73,6 +81,10 @@ class EngineImpl implements Engine {
         return evaluator;
     }
 
+    public List<ResultMapper> getResultMappers() {
+        return resultMappers;
+    }
+
     public Template putTemplate(String id, Template template) {
         return templates.put(id, template);
     }
@@ -80,12 +92,12 @@ class EngineImpl implements Engine {
     public Template getTemplate(String id) {
         return templates.computeIfAbsent(id, this::load);
     }
-    
+
     @Override
     public void clearTemplates() {
         templates.clear();
     }
-    
+
     @Override
     public void removeTemplates(Predicate<String> test) {
         templates.keySet().removeIf(test);
@@ -111,6 +123,13 @@ class EngineImpl implements Engine {
             }
         }
         return null;
+    }
+
+    private static <T extends WithPriority> List<T> sort(Collection<T> items) {
+        List<T> sorted = new ArrayList<>(items);
+        // Higher priority wins
+        sorted.sort(Comparator.comparingInt(WithPriority::getPriority).reversed());
+        return ImmutableList.copyOf(sorted);
     }
 
 }
