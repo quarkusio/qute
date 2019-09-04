@@ -26,8 +26,7 @@ public class SimpleTest {
         data.put("test", Boolean.TRUE);
         data.put("list", ImmutableList.of(item));
 
-        Engine engine = Engine.builder().addSectionHelper("if", new IfSectionHelper.Factory())
-                .addSectionHelper("for", new LoopSectionHelper.Factory()).addValueResolver(ValueResolvers.mapResolver())
+        Engine engine = Engine.builder().addDefaultSectionHelpers().addDefaultValueResolvers()
                 .build();
 
         Template template = engine.parse("{#if test}Hello {name}!{/}\n\n{#for item in list}{item:name}{/}");

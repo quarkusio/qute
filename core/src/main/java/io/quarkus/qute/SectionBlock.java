@@ -13,7 +13,7 @@ import java.util.Map;
 public class SectionBlock {
 
     static SectionBlock.Builder builder(String id) {
-        return new Builder(id);
+        return new Builder(id).setLabel(id);
     }
 
     /**

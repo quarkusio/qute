@@ -88,15 +88,15 @@ public interface SectionHelperFactory<T extends SectionHelper> {
             }
 
             public Builder addParameter(String name) {
-                return addParameter("main", name, null);
+                return addParameter(Parser.MAIN_BLOCK_NAME, name, null);
             }
 
             public Builder addParameter(String name, String defaultValue) {
-                return addParameter("main", name, defaultValue);
+                return addParameter(Parser.MAIN_BLOCK_NAME, name, defaultValue);
             }
 
             public Builder addParameter(Parameter param) {
-                return addParameter("main", param);
+                return addParameter(Parser.MAIN_BLOCK_NAME, param);
             }
 
             public Builder addParameter(String sectionPartLabel, String name, String defaultValue) {

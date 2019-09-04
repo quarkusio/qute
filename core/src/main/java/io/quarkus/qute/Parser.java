@@ -25,6 +25,7 @@ class Parser {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(Parser.class);
     private static final String ROOT_HELPER_NAME = "$root";
+    static final String MAIN_BLOCK_NAME = "$main";
 
     private final EngineImpl engine;
 
@@ -60,7 +61,7 @@ class Parser {
 
                         }));
         this.sectionBlockStack = new ArrayDeque<>();
-        this.sectionBlockStack.addFirst(SectionBlock.builder("main"));
+        this.sectionBlockStack.addFirst(SectionBlock.builder(MAIN_BLOCK_NAME));
         this.sectionBlockIdx = 0;
         this.paramsStack = new ArrayDeque<>();
         this.paramsStack.addFirst(ParametersInfo.EMPTY);
@@ -185,10 +186,9 @@ class Parser {
                 throw new IllegalStateException("No section helper for: " + helperName);
             }
             paramsStack.addFirst(factory.getParameters());
-            // TODO main constant
-            SectionBlock.Builder mainBlock = SectionBlock.builder("main").setLabel("main");
+            SectionBlock.Builder mainBlock = SectionBlock.builder(MAIN_BLOCK_NAME);
             sectionBlockStack.addFirst(mainBlock);
-            processParams("main", iter);
+            processParams(MAIN_BLOCK_NAME, iter);
             SectionNode.Builder sectionNode = SectionNode.builder(helperName).setEngine(engine).setHelperFactory(factory);
 
             if (isEmptySection) {
@@ -223,19 +223,24 @@ class Parser {
 
         } else if (content.charAt(0) == Tag.SECTION_END.getCommand()) {
             SectionBlock.Builder block = sectionBlockStack.peek();
+            SectionNode.Builder section = sectionStack.peek();
             String name = content.substring(1, content.length());
-            if (block != null && name.equals(block.getLabel())) {
+            if (block != null && !block.getLabel().equals(MAIN_BLOCK_NAME) && !section.helperName.equals(name)) {
                 // Block end
-                SectionNode.Builder section = sectionStack.peek();
+                if (!name.isEmpty() && !block.getLabel().equals(name)) {
+                    throw new IllegalStateException(
+                            "Section block end tag does not match the start tag. Start: " + block.getLabel() + ", end: "
+                                    + name);
+                }
                 section.addBlock(sectionBlockStack.pop().build());
                 ignoreContent = true;
             } else {
                 // Section end
-                SectionNode.Builder section = sectionStack.pop();
                 if (!name.isEmpty() && !section.helperName.equals(name)) {
                     throw new IllegalStateException(
-                            "Section eng tag does not match the start tag. Start: " + section.helperName + ", end: " + name);
+                            "Section end tag does not match the start tag. Start: " + section.helperName + ", end: " + name);
                 }
+                section = sectionStack.pop();
                 if (!ignoreContent) {
                     section.addBlock(sectionBlockStack.pop().build());
                 }

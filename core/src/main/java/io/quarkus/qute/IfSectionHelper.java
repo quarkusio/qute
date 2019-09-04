@@ -31,7 +31,7 @@ public class IfSectionHelper implements SectionHelper {
         }
         ImmutableList.Builder<Block> builder = ImmutableList.builder();
         for (SectionBlock part : context.getBlocks()) {
-            if ("main".equals(part.label) || ELSE.equals(part.label)) {
+            if (Parser.MAIN_BLOCK_NAME.equals(part.label) || ELSE.equals(part.label)) {
                 builder.add(new Block(part));
             }
         }
