@@ -8,12 +8,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 import javax.inject.Inject;
+import javax.inject.Singleton;
 
 import io.quarkus.qute.Template;
+import io.quarkus.qute.TemplateData;
 import io.quarkus.qute.TemplateExtension;
 import io.quarkus.vertx.web.Route;
 import io.quarkus.vertx.web.RoutingExchange;
 
+@Singleton
+@TemplateData(target = Item.class)
 public class ItemsResource {
 
     @Inject
@@ -29,7 +33,7 @@ public class ItemsResource {
         return value.setScale(newScale, RoundingMode.HALF_UP);
     }
 
-    @TemplateExtension
+    @TemplateExtension(matchName = "upper")
     static String toUpperCase(String value) {
         return value.toUpperCase();
     }

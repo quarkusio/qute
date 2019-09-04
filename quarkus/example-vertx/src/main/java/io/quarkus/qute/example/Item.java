@@ -2,9 +2,6 @@ package io.quarkus.qute.example;
 
 import java.math.BigDecimal;
 
-import io.quarkus.qute.TemplateData;
-
-@TemplateData
 public class Item {
 
     private String name;

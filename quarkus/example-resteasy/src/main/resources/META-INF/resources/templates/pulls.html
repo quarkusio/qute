@@ -7,20 +7,20 @@ body {
   font-family: sans-serif;
 }
 </style>
-<title>Quarkus Open Pull Requests</title>
+<title>Open Pull Requests</title>
 </head>
 
 <body>
-    <h1>Quarkus Open Pull Requests</h1>
-
-    {#with inject:client.pullRequests}
-    <p>Found <strong>{size}</strong> open pull pequests. 
-    {#if size > 20}
-    That's too many.
+    <h1>Open Pull Requests</h1>
+    <h2>Quarkus</h2>
+    {#set quarkusPulls=inject:client.getPullRequests('quarkus')}
+    <p>Found <strong>{quarkusPulls.size}</strong> open pull pequests. 
+    {#if quarkusPulls.size > 20}
+        That's too many.
     {:else}
-    That's a reasonable amount.
+        That's a reasonable amount.
     {/if}</p>
-    {#each}
+    {#each quarkusPulls}
     <article>
         <h3>{iter:count}. {title}</h3>
         <ul>
@@ -28,7 +28,27 @@ body {
             <li>Link: <a target="_blank" href="{html_url}">{html_url}</a></li>
         </ul>
     </article>
-    {/each} {/with}
+    {/each} 
+    {/set}
+    
+    <h2>Thorntail</h2>
+    {#set thorntailPulls=inject:client.getPullRequests('thorntail')}
+    <p>Found <strong>{thorntailPulls.size}</strong> open pull pequests. 
+    {#if thorntailPulls.size > 20}
+        That's too many.
+    {:else}
+        That's a reasonable amount.
+    {/if}</p>
+    {#each thorntailPulls}
+    <article>
+        <h3>{iter:count}. {title}</h3>
+        <ul>
+            <li>Author: <strong>{user.login}</strong></li>
+            <li>Link: <a target="_blank" href="{html_url}">{html_url}</a></li>
+        </ul>
+    </article>
+    {/each} 
+    {/set}
 
     <p>Page generated at {generatedTime}.</p>
 
