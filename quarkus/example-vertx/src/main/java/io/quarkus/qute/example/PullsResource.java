@@ -24,11 +24,13 @@ public class PullsResource {
 
     @Route(path = "/pulls", methods = GET, produces = "text/html")
     public void getPulls(RoutingExchange exchange) {
+        long start = System.currentTimeMillis();
         exchange.response().setChunked(true);
         pulls.render().putData("generatedTime", LocalDateTime.now()).consume(exchange.response()::write)
                 .whenComplete((v, t) -> {
                     if (t == null) {
                         exchange.ok().end();
+                        System.out.println("Rendered in " + (System.currentTimeMillis() - start) + " ms");
                     } else {
                         Throwable cause = t.getCause();
                         exchange.serverError()

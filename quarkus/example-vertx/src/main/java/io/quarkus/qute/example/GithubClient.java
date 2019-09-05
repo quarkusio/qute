@@ -3,6 +3,8 @@ package io.quarkus.qute.example;
 import static io.quarkus.qute.TemplateExtension.ANY;
 import static io.quarkus.qute.ValueResolver.match;
 
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
@@ -28,9 +30,9 @@ import io.vertx.core.json.JsonObject;
 @Named("client")
 public class GithubClient {
 
-    static final String PATH = "/repos/quarkusio/quarkus/pulls?state=open";
-
     private static final Logger LOGGER = LoggerFactory.getLogger(GithubClient.class);
+
+    Map<String, String> repos;
 
     WebClient webClient;
 
@@ -40,6 +42,9 @@ public class GithubClient {
     @PostConstruct
     void init() {
         webClient = WebClient.create(vertx.get());
+        repos = new HashMap<>();
+        repos.put("quarkus", "/repos/quarkusio/quarkus/pulls?state=open&per_page=10");
+        repos.put("thorntail", "/repos/thorntail/thorntail/pulls?state=open&per_page=10");
     }
 
     // Declarative approach
@@ -55,11 +60,14 @@ public class GithubClient {
                         .resolve((a, n) -> a.size()));
     }
 
-    public CompletionStage<JsonArray> getPullRequests() {
+    public CompletionStage<JsonArray> getPullRequests(String repo) {
+        if (!repos.containsKey(repo)) {
+            return CompletableFuture.completedFuture(new JsonArray());
+        }
         long start = System.currentTimeMillis();
         return webClient
-                .get(80, "api.github.com", PATH).as(BodyCodec.jsonArray()).send().thenCompose(r -> {
-                    LOGGER.info("Response received in {} ms", System.currentTimeMillis() - start);
+                .get(80, "api.github.com", repos.get(repo)).as(BodyCodec.jsonArray()).send().thenCompose(r -> {
+                    LOGGER.info("Response for repo {} received in {} ms", repo, System.currentTimeMillis() - start);
                     if (r.statusCode() == 200) {
                         return CompletableFuture.completedFuture(r.body());
                     } else {
