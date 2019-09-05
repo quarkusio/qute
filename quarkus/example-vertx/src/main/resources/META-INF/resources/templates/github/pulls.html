@@ -12,15 +12,9 @@ body {
 
 <body>
     <h1>Open Pull Requests</h1>
+    
     <h2>Quarkus</h2>
-    {#set quarkusPulls=inject:client.getPullRequests('quarkus')}
-    <p>Found <strong>{quarkusPulls.size}</strong> open pull pequests. 
-    {#if quarkusPulls.size > 20}
-        That's too many.
-    {:else}
-        That's a reasonable amount.
-    {/if}</p>
-    {#each quarkusPulls}
+    {#each inject:client.getPullRequests('quarkus')}
     <article>
         <h3>{iter:count}. {title}</h3>
         <ul>
@@ -29,17 +23,9 @@ body {
         </ul>
     </article>
     {/each} 
-    {/set}
     
     <h2>Thorntail</h2>
-    {#set thorntailPulls=inject:client.getPullRequests('thorntail')}
-    <p>Found <strong>{thorntailPulls.size}</strong> open pull pequests. 
-    {#if thorntailPulls.size > 20}
-        That's too many.
-    {:else}
-        That's a reasonable amount.
-    {/if}</p>
-    {#each thorntailPulls}
+    {#each inject:client.getPullRequests('thorntail')}
     <article>
         <h3>{iter:count}. {title}</h3>
         <ul>
@@ -48,7 +34,6 @@ body {
         </ul>
     </article>
     {/each} 
-    {/set}
 
     <p>Page generated at {generatedTime}.</p>
 
