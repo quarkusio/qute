@@ -59,7 +59,7 @@ Dynamic parts of a template include:
 * sections: `{#if foo} Foo is true {/if}`
 ** the name in the closing tag is optional: `{#if foo} Foo is true {/}`
 ** a section can be empty: `{#userTag image=true /}`
-* comments: `{! This is a comment}`, `{! foo.bar}`, `{! #if true}`
+* comments: `{! This is a comment !}`, `{! foo.bar !}`, `{! {#if true} !}`
 
 === Expressions
 

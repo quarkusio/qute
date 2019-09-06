@@ -29,8 +29,9 @@ class Parser {
 
     private final EngineImpl engine;
 
-    private final char startDelimiter = '{';
-    private final char endDelimiter = '}';
+    private static final char START_DELIMITER = '{';
+    private static final char END_DELIMITER = '}';
+    private static final char COMMENT_DELIMITER = '!';
 
     private StringBuilder buffer;
     private State state;
@@ -116,6 +117,9 @@ class Parser {
             case TAG_INSIDE:
                 tag(character);
                 break;
+            case COMMENT:
+                comment(character);
+                break;
             case TAG_CANDIDATE:
                 tagCandidate(character);
                 break;
@@ -125,15 +129,25 @@ class Parser {
     }
 
     private void text(char character) {
-        if (character == startDelimiter) {
+        if (character == START_DELIMITER) {
             state = State.TAG_CANDIDATE;
+        } else {
+            buffer.append(character);
+        }
+    }
+    
+    private void comment(char character) {
+        if (character == END_DELIMITER && buffer.length() > 0 && buffer.charAt(buffer.length() - 1) == COMMENT_DELIMITER) {
+            // End of comment
+            state = State.TEXT;
+            buffer = new StringBuilder();
         } else {
             buffer.append(character);
         }
     }
 
     private void tag(char character) {
-        if (character == endDelimiter) {
+        if (character == END_DELIMITER) {
             flushTag();
         } else {
             buffer.append(character);
@@ -142,15 +156,15 @@ class Parser {
 
     private void tagCandidate(char character) {
         if (Character.isWhitespace(character)) {
-            buffer.append(startDelimiter);
+            buffer.append(START_DELIMITER);
             state = State.TEXT;
-        } else if (character == startDelimiter) {
-            buffer.append(startDelimiter).append(startDelimiter);
+        } else if (character == START_DELIMITER) {
+            buffer.append(START_DELIMITER).append(START_DELIMITER);
             state = State.TEXT;
         } else {
             // Real tag start, flush text if any
             flushText();
-            state = State.TAG_INSIDE;
+            state = character == COMMENT_DELIMITER ? State.COMMENT : State.TAG_INSIDE;
             buffer.append(character);
         }
     }
@@ -246,7 +260,7 @@ class Parser {
                 }
                 sectionBlockStack.peek().addNode(section.build());
             }
-        } else if (content.charAt(0) != '!') {
+        } else {
             sectionBlockStack.peek().addNode(new ExpressionNode(content, engine));
         }
         this.buffer = new StringBuilder();
@@ -425,6 +439,7 @@ class Parser {
         TEXT,
         TAG_INSIDE,
         TAG_CANDIDATE,
+        COMMENT,
 
     }
 
