@@ -22,4 +22,11 @@ public class QuteConfig {
     @ConfigItem(defaultValue = "html,txt")
     public List<String> suffixes;
 
+    /**
+     * If set to true then attempt to detect all classes that are very likely used in a template (match property names) but no
+     * value resolver is generated for them.
+     */
+    @ConfigItem(defaultValue = "true")
+    public boolean detectTemplateData;
+
 }

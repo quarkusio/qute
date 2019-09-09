@@ -1,8 +1,7 @@
-package com.github.mkouba.qute.quarkus;
+package io.quarkus.qute.deployment;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-import javax.enterprise.context.Dependent;
 import javax.inject.Inject;
 
 import org.jboss.shrinkwrap.api.ShrinkWrap;
@@ -14,29 +13,22 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 import io.quarkus.qute.Template;
 import io.quarkus.test.QuarkusUnitTest;
 
-public class AlternativeBasePathTest {
+public class ReflectionResolverTest {
 
     @RegisterExtension
     static final QuarkusUnitTest config = new QuarkusUnitTest()
             .setArchiveProducer(() -> ShrinkWrap.create(JavaArchive.class)
-                    .addClasses(SimpleBean.class)
-                    .addAsResource(new StringAsset("quarkus.qute.base-path=myPath"), "application.properties")
-                    .addAsResource(new StringAsset("{this}"), "META-INF/resources/myPath/foo.txt"));
+                    .addClasses(HelloReflect.class)
+                    // Make sure we do not detect the template data
+                    .addAsResource(new StringAsset("quarkus.qute.detect-template-data=false"), "application.properties")
+                    .addAsResource(new StringAsset("{age}:{ping}:{noMatch}") , "META-INF/resources/templates/reflect.txt"));
 
     @Inject
-    SimpleBean simpleBean;
+    Template reflect;
 
     @Test
     public void testInjection() {
-        assertEquals("bar", simpleBean.foo.render("bar"));
-    }
-
-    @Dependent
-    public static class SimpleBean {
-
-        @Inject
-        Template foo;
-
+        assertEquals("10:pong:NOT_FOUND", reflect.render(new HelloReflect()));
     }
 
 }

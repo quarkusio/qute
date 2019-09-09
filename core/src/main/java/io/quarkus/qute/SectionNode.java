@@ -1,7 +1,9 @@
 package io.quarkus.qute;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
@@ -36,6 +38,15 @@ class SectionNode implements TemplateNode {
         builder.append("SectionNode [helper=").append(helper.getClass().getSimpleName()).append("]");
         return builder.toString();
     }
+    
+    Set<Expression> getExpressions() {
+        Set<Expression> expressions = new HashSet<>();
+        for (SectionBlock block : blocks) {
+            expressions.addAll(block.getExpressions());
+        }
+        return expressions;
+    }
+    
 
     static class Builder {
 

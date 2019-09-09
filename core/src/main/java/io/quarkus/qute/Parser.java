@@ -101,7 +101,7 @@ class Parser {
             }
             root.addBlock(part.build());
             Template template = new TemplateImpl(engine, root.build());
-            LOGGER.debug("Parsing finished in {} ms", System.currentTimeMillis() - start);
+            LOGGER.trace("Parsing finished in {} ms", System.currentTimeMillis() - start);
             return template;
 
         } catch (IOException e) {
@@ -195,7 +195,7 @@ class Parser {
             }
             String helperName = iter.next();
             helperName = helperName.substring(1, helperName.length());
-            SectionHelperFactory<?> factory = engine.getSectionHelperFactories().get(helperName);
+            SectionHelperFactory<?> factory = engine.getSectionHelperFactory(helperName);
             if (factory == null) {
                 throw new IllegalStateException("No section helper for: " + helperName);
             }
@@ -275,7 +275,7 @@ class Parser {
             paramValues.add(iter.next());
         }
         if (paramValues.size() > factoryParams.size()) {
-            LOGGER.debug("Too many params [label={}, params={}, factoryParams={}]", label, params, factoryParams);
+            LOGGER.debug("Too many params [label={}, params={}, factoryParams={}]", label, paramValues, factoryParams);
         }
         if (paramValues.size() < factoryParams.size()) {
             for (String param : paramValues) {

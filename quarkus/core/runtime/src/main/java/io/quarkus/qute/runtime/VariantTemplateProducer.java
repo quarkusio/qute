@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Consumer;
 
@@ -23,6 +24,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import io.quarkus.qute.Engine;
+import io.quarkus.qute.Expression;
 import io.quarkus.qute.RenderingBase;
 import io.quarkus.qute.Template;
 import io.quarkus.qute.api.ResourcePath;
@@ -102,6 +104,11 @@ public class VariantTemplateProducer {
             return new VariantRenderingImpl(templateVariants.get(baseName));
         }
 
+        @Override
+        public Set<Expression> getExpressions() {
+            throw new UnsupportedOperationException();
+        }
+        
     }
 
     class VariantRenderingImpl extends RenderingBase {

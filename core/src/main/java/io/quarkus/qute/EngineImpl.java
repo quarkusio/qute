@@ -5,6 +5,7 @@ import java.io.Reader;
 import java.io.StringReader;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -29,6 +30,7 @@ class EngineImpl implements Engine {
     private static final Logger LOGGER = LoggerFactory.getLogger(EngineImpl.class);
 
     private final Map<String, SectionHelperFactory<?>> sectionHelperFactories;
+    private final Function<String, SectionHelperFactory<?>> sectionHelperFunc;
     private final List<ValueResolver> valueResolvers;
     private final List<NamespaceResolver> namespaceResolvers;
     private final Evaluator evaluator;
@@ -39,7 +41,7 @@ class EngineImpl implements Engine {
 
     EngineImpl(Map<String, SectionHelperFactory<?>> sectionHelperFactories, List<ValueResolver> valueResolvers,
             List<NamespaceResolver> namespaceResolvers, List<Function<String, Optional<Reader>>> locators,
-            List<ResultMapper> resultMappers) {
+            List<ResultMapper> resultMappers, Function<String, SectionHelperFactory<?>> sectionHelperFunc) {
         this.sectionHelperFactories = new HashMap<>(sectionHelperFactories);
         this.valueResolvers = sort(valueResolvers);
         this.namespaceResolvers = ImmutableList.copyOf(namespaceResolvers);
@@ -59,14 +61,24 @@ class EngineImpl implements Engine {
                             .map(Object::getClass).map(Class::getName).collect(Collectors.joining(",")));
         }
         this.resultMappers = sort(resultMappers);
+        this.sectionHelperFunc = sectionHelperFunc;
     }
 
     public Template parse(String content) {
         return new Parser(this).parse(new StringReader(content));
     }
 
+    @Override
+    public SectionHelperFactory<?> getSectionHelperFactory(String name) {
+        SectionHelperFactory<?> factory = sectionHelperFactories.get(name);
+        if (factory != null) {
+            return factory;
+        }
+        return sectionHelperFunc != null ? sectionHelperFunc.apply(name) : null;
+    }
+
     public Map<String, SectionHelperFactory<?>> getSectionHelperFactories() {
-        return sectionHelperFactories;
+        return Collections.unmodifiableMap(sectionHelperFactories);
     }
 
     public List<ValueResolver> getValueResolvers() {

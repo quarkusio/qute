@@ -15,6 +15,8 @@ public interface Engine {
 
     public Template parse(String content);
 
+    public SectionHelperFactory<?> getSectionHelperFactory(String name);
+    
     public Map<String, SectionHelperFactory<?>> getSectionHelperFactories();
 
     public List<ValueResolver> getValueResolvers();

@@ -1,4 +1,4 @@
-package com.github.mkouba.qute.quarkus;
+package io.quarkus.qute.deployment;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Named;

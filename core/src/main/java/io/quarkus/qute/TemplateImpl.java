@@ -1,6 +1,7 @@
 package io.quarkus.qute;
 
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutionException;
@@ -23,6 +24,11 @@ class TemplateImpl implements Template {
     @Override
     public Rendering render() {
         return new RenderingImpl();
+    }
+    
+    @Override
+    public Set<Expression> getExpressions() {
+        return root.getExpressions();
     }
 
     private class RenderingImpl extends RenderingBase {

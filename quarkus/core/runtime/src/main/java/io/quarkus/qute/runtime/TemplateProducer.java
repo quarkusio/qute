@@ -2,6 +2,7 @@ package io.quarkus.qute.runtime;
 
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+import java.util.Set;
 import java.util.function.Supplier;
 
 import javax.enterprise.inject.Produces;
@@ -13,6 +14,7 @@ import javax.inject.Singleton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import io.quarkus.qute.Expression;
 import io.quarkus.qute.Template;
 import io.quarkus.qute.api.ResourcePath;
 
@@ -86,6 +88,11 @@ public class TemplateProducer {
         @Override
         public Rendering render() {
             return template.get().render();
+        }
+
+        @Override
+        public Set<Expression> getExpressions() {
+            return template.get().getExpressions();
         }
 
     }

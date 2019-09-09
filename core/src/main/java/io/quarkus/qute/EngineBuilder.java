@@ -25,6 +25,7 @@ public final class EngineBuilder {
     private final List<NamespaceResolver> namespaceResolvers;
     private final List<Function<String, Optional<Reader>>> locators;
     private final List<ResultMapper> resultMappers;
+    private Function<String, SectionHelperFactory<?>> sectionHelperFunc;
 
     EngineBuilder() {
         this.sectionHelperFactories = new HashMap<>();
@@ -113,8 +114,14 @@ public final class EngineBuilder {
         return this;
     }
 
+    public EngineBuilder computeSectionHelper(Function<String, SectionHelperFactory<?>> func) {
+        this.sectionHelperFunc = func;
+        return this;
+    }
+
     public Engine build() {
-        return new EngineImpl(sectionHelperFactories, valueResolvers, namespaceResolvers, locators, resultMappers);
+        return new EngineImpl(sectionHelperFactories, valueResolvers, namespaceResolvers, locators, resultMappers,
+                sectionHelperFunc);
     }
 
 }

@@ -1,5 +1,6 @@
 package io.quarkus.qute;
 
+import java.util.Set;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Consumer;
 
@@ -25,6 +26,13 @@ public interface Template {
      * @return a new rendering action
      */
     Rendering render();
+
+    /**
+     * NOTE: The set needn't to be exhaustive. It more like a hint for external tools.
+     * 
+     * @return a set of expressions used in the template
+     */
+    Set<Expression> getExpressions();
 
     /**
      * This construct is not thread-safe.

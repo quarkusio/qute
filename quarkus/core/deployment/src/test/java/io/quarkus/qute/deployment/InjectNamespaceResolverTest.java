@@ -1,4 +1,4 @@
-package com.github.mkouba.qute.quarkus;
+package io.quarkus.qute.deployment;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 

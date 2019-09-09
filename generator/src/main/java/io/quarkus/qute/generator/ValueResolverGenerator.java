@@ -399,7 +399,7 @@ public class ValueResolverGenerator {
         return filter;
     }
 
-    static boolean isSynthetic(int mod) {
+    public static boolean isSynthetic(int mod) {
         return (mod & 0x00001000) != 0;
     }
 
@@ -407,7 +407,7 @@ public class ValueResolverGenerator {
         return name.startsWith(GET_PREFIX) || name.startsWith(IS_PREFIX);
     }
 
-    static String getPropertyName(String methodName) {
+    public static String getPropertyName(String methodName) {
         if (methodName.startsWith(GET_PREFIX)) {
             return decapitalize(methodName.substring(GET_PREFIX.length(), methodName.length()));
         } else if (methodName.startsWith(IS_PREFIX)) {

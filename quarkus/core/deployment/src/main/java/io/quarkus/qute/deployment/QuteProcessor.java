@@ -3,6 +3,7 @@ package io.quarkus.qute.deployment;
 import static io.quarkus.deployment.annotations.ExecutionTime.RUNTIME_INIT;
 
 import java.io.IOException;
+import java.lang.reflect.Modifier;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
@@ -14,6 +15,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -23,6 +26,7 @@ import org.jboss.jandex.AnnotationTarget.Kind;
 import org.jboss.jandex.AnnotationValue;
 import org.jboss.jandex.ClassInfo;
 import org.jboss.jandex.DotName;
+import org.jboss.jandex.FieldInfo;
 import org.jboss.jandex.IndexView;
 import org.jboss.jandex.MethodInfo;
 import org.slf4j.Logger;
@@ -41,6 +45,7 @@ import io.quarkus.deployment.annotations.BuildProducer;
 import io.quarkus.deployment.annotations.BuildStep;
 import io.quarkus.deployment.annotations.Record;
 import io.quarkus.deployment.builditem.ApplicationArchivesBuildItem;
+import io.quarkus.deployment.builditem.CombinedIndexBuildItem;
 import io.quarkus.deployment.builditem.GeneratedClassBuildItem;
 import io.quarkus.deployment.builditem.HotDeploymentWatchedFileBuildItem;
 import io.quarkus.deployment.builditem.ServiceStartBuildItem;
@@ -48,7 +53,12 @@ import io.quarkus.deployment.builditem.substrate.ReflectiveClassBuildItem;
 import io.quarkus.deployment.builditem.substrate.ServiceProviderBuildItem;
 import io.quarkus.deployment.builditem.substrate.SubstrateResourceBuildItem;
 import io.quarkus.gizmo.ClassOutput;
+import io.quarkus.qute.Engine;
+import io.quarkus.qute.Expression;
 import io.quarkus.qute.PublisherFactory;
+import io.quarkus.qute.ResultNode;
+import io.quarkus.qute.SectionHelper;
+import io.quarkus.qute.SectionHelperFactory;
 import io.quarkus.qute.Template;
 import io.quarkus.qute.api.ResourcePath;
 import io.quarkus.qute.api.VariantTemplate;
@@ -79,8 +89,10 @@ public class QuteProcessor {
     }
 
     @BuildStep
-    void generateValueResolvers(BuildProducer<GeneratedClassBuildItem> generatedClass,
-            BeanArchiveIndexBuildItem beanArchiveIndex, ApplicationArchivesBuildItem applicationArchivesBuildItem,
+    void generateValueResolvers(QuteConfig config, BuildProducer<GeneratedClassBuildItem> generatedClass,
+            CombinedIndexBuildItem combinedIndex, BeanArchiveIndexBuildItem beanArchiveIndex,
+            ApplicationArchivesBuildItem applicationArchivesBuildItem,
+            List<TemplatePathBuildItem> templatePaths,
             BuildProducer<GeneratedValueResolverBuildItem> generatedResolvers,
             BuildProducer<ReflectiveClassBuildItem> reflectiveClass) {
 
@@ -110,6 +122,8 @@ public class QuteProcessor {
             }
         };
 
+        Set<String> expressions = config.detectTemplateData ? collectExpressions(templatePaths) : null;
+
         Set<ClassInfo> controlled = new HashSet<>();
         Map<ClassInfo, AnnotationInstance> uncontrolled = new HashMap<>();
         for (AnnotationInstance templateData : index.getAnnotations(ValueResolverGenerator.TEMPLATE_DATA)) {
@@ -119,6 +133,10 @@ public class QuteProcessor {
             for (AnnotationInstance templateData : containerInstance.value().asNestedArray()) {
                 processsTemplateData(index, templateData, containerInstance.target(), controlled, uncontrolled);
             }
+        }
+
+        if (expressions != null) {
+            controlled.addAll(detectTemplateData(combinedIndex.getIndex(), appClassPredicate, expressions));
         }
 
         ValueResolverGenerator generator = ValueResolverGenerator.builder().setIndex(index).setClassOutput(classOutput)
@@ -213,7 +231,7 @@ public class QuteProcessor {
                 Path path = tagFiles.next();
                 String tagPath = path.getFileName().toString();
                 LOGGER.debug("Found tag: {}", path);
-                produceTemplateBuildItems(templatePaths, watchedPaths, substrateResources, tagBasePath, tagPath, true);
+                produceTemplateBuildItems(templatePaths, watchedPaths, substrateResources, tagBasePath, tagPath, path, true);
             }
         }
     }
@@ -329,6 +347,131 @@ public class QuteProcessor {
         recorder.initVariants(beanContainer.getValue(), variants);
     }
 
+    private Set<ClassInfo> detectTemplateData(IndexView index, Predicate<String> appClassPredicate,
+            Set<String> expressions) {
+        long start = System.currentTimeMillis();
+        Set<ClassInfo> ret = new HashSet<>();
+
+        for (ClassInfo classInfo : index.getKnownClasses()) {
+            // skip interfaces, abstract classes, non-public and non-app classes
+            if (Modifier.isPublic(classInfo.flags()) && !Modifier.isInterface(classInfo.flags())
+                    && !Modifier.isAbstract(classInfo.flags()) && appClassPredicate.test(classInfo.name().toString())) {
+                ClassInfo clazz = classInfo;
+                while (clazz != null) {
+                    if (matches(clazz, expressions)) {
+                        ret.add(classInfo);
+                    }
+                    if (!clazz.superName().equals(DotNames.OBJECT)) {
+                        clazz = index.getClassByName(clazz.superName());
+                    } else {
+                        clazz = null;
+                    }
+                }
+            }
+        }
+
+        for (Iterator<ClassInfo> iterator = ret.iterator(); iterator.hasNext();) {
+            ClassInfo classInfo = iterator.next();
+            if (classInfo.classAnnotation(DotNames.NAMED) != null
+                    && classInfo.classAnnotation(ValueResolverGenerator.TEMPLATE_DATA) != null
+                    && classInfo.classAnnotation(ValueResolverGenerator.TEMPLATE_DATA_CONTAINER) != null) {
+                // Remove classes annotated with @Named or @TemplateData
+                iterator.remove();
+            }
+        }
+
+        LOGGER.debug("Detected template data classes in {} ms: \n {}", System.currentTimeMillis() - start, ret);
+        return ret;
+    }
+
+    private boolean matches(ClassInfo classInfo, Set<String> expressions) {
+        return hasMatchingField(classInfo.fields(), expressions) || hasMatchingMethod(classInfo.methods(), expressions);
+    }
+
+    private boolean hasMatchingField(Iterable<FieldInfo> fields, Set<String> expressions) {
+        for (FieldInfo field : fields) {
+            if (!Modifier.isPublic(field.flags()) || Modifier.isStatic(field.flags())
+                    || ValueResolverGenerator.isSynthetic(field.flags())) {
+                continue;
+            }
+            if (expressions.contains(field.name())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean hasMatchingMethod(Iterable<MethodInfo> methods, Set<String> expressions) {
+        for (MethodInfo method : methods) {
+            if (method.name().equals("<init>")
+                    || method.name().equals("<clinit>") || ValueResolverGenerator.isSynthetic(method.flags())
+                    || !Modifier.isPublic(method.flags())
+                    || Modifier.isStatic(method.flags())
+                    || method.returnType().kind() == org.jboss.jandex.Type.Kind.VOID
+                    || !method.parameters().isEmpty()) {
+                continue;
+            }
+            if (expressions.contains(method.name())
+                    || expressions.contains(ValueResolverGenerator.getPropertyName(method.name()))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private Set<String> collectExpressions(List<TemplatePathBuildItem> templatePaths) {
+        long start = System.currentTimeMillis();
+        Set<String> ret = new HashSet<>();
+        Set<Expression> expressions = new HashSet<>();
+
+        Engine dummy = Engine.builder().addDefaultSectionHelpers().computeSectionHelper(name -> {
+            return new SectionHelperFactory<SectionHelper>() {
+
+                @Override
+                public SectionHelper initialize(SectionInitContext context) {
+                    return new SectionHelper() {
+
+                        @Override
+                        public CompletionStage<ResultNode> resolve(SectionResolutionContext context) {
+                            return CompletableFuture.completedFuture(ResultNode.NOOP);
+                        }
+
+                    };
+                }
+
+            };
+        }).build();
+
+        for (TemplatePathBuildItem path : templatePaths) {
+            try {
+                Template template = dummy.parse(new String(Files.readAllBytes(path.getFullPath())));
+                expressions.addAll(template.getExpressions());
+            } catch (IOException e) {
+                LOGGER.warn("Unable to read the template from path: " + path.getFullPath(), e);
+            }
+        }
+
+        for (Expression expression : expressions) {
+            if (expression.literal != null) {
+                continue;
+            }
+            Iterable<String> parts;
+            if (expression.namespace != null && expression.parts.size() > 1) {
+                parts = expression.parts.subList(1, expression.parts.size());
+            } else {
+                parts = expression.parts;
+            }
+            for (String part : parts) {
+                if (part.indexOf("(") == -1) {
+                    ret.add(part);
+                }
+            }
+        }
+        LOGGER.debug("Collected {} expressions in {} ms: \n{}",
+                ret.size(), System.currentTimeMillis() - start, ret);
+        return ret;
+    }
+
     private String getName(InjectionPointInfo injectionPoint) {
         if (injectionPoint.isField()) {
             return injectionPoint.getTarget().asField().name();
@@ -341,14 +484,15 @@ public class QuteProcessor {
 
     private static void produceTemplateBuildItems(BuildProducer<TemplatePathBuildItem> templatePaths,
             BuildProducer<HotDeploymentWatchedFileBuildItem> watchedPaths,
-            BuildProducer<SubstrateResourceBuildItem> substrateResources, String basePath, String filePath, boolean tag) {
+            BuildProducer<SubstrateResourceBuildItem> substrateResources, String basePath, String filePath, Path originalPath,
+            boolean tag) {
         if (filePath.isEmpty()) {
             return;
         }
         String fullPath = basePath + filePath;
         watchedPaths.produce(new HotDeploymentWatchedFileBuildItem(fullPath, false));
         substrateResources.produce(new SubstrateResourceBuildItem(fullPath));
-        templatePaths.produce(new TemplatePathBuildItem(filePath, tag));
+        templatePaths.produce(new TemplatePathBuildItem(filePath, originalPath, tag));
     }
 
     private void scan(Path root, Path directory, String basePath, BuildProducer<HotDeploymentWatchedFileBuildItem> watchedPaths,
@@ -360,7 +504,7 @@ public class QuteProcessor {
             if (Files.isRegularFile(path)) {
                 LOGGER.debug("Found template: {}", path);
                 String templatePath = root.relativize(path).toString();
-                produceTemplateBuildItems(templatePaths, watchedPaths, substrateResources, basePath, templatePath, false);
+                produceTemplateBuildItems(templatePaths, watchedPaths, substrateResources, basePath, templatePath, path, false);
             } else if (Files.isDirectory(path) && !path.getFileName().toString().equals("tags")) {
                 LOGGER.debug("Scan directory: {}", path);
                 scan(root, path, basePath, watchedPaths, templatePaths, substrateResources);

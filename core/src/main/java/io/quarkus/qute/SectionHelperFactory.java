@@ -83,7 +83,7 @@ public interface SectionHelperFactory<T extends SectionHelper> {
 
             private final Map<String, List<Parameter>> parameters;
 
-            public Builder() {
+            Builder() {
                 this.parameters = new HashMap<>();
             }
 
@@ -99,14 +99,12 @@ public interface SectionHelperFactory<T extends SectionHelper> {
                 return addParameter(Parser.MAIN_BLOCK_NAME, param);
             }
 
-            public Builder addParameter(String sectionPartLabel, String name, String defaultValue) {
-                parameters.computeIfAbsent(sectionPartLabel, c -> new ArrayList<>())
-                        .add(new Parameter(name, defaultValue, false));
-                return this;
+            public Builder addParameter(String blockLabel, String name, String defaultValue) {
+                return addParameter(blockLabel, new Parameter(name, defaultValue, false));
             }
 
-            public Builder addParameter(String sectionPartLabel, Parameter parameter) {
-                parameters.computeIfAbsent(sectionPartLabel, c -> new ArrayList<>()).add(parameter);
+            public Builder addParameter(String blockLabel, Parameter parameter) {
+                parameters.computeIfAbsent(blockLabel, c -> new ArrayList<>()).add(parameter);
                 return this;
             }
 

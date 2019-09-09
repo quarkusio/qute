@@ -3,8 +3,10 @@ package io.quarkus.qute;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Each section tag consists of one or more blocks. The main block is always present. Additional blocks start with a label
@@ -38,6 +40,18 @@ public class SectionBlock {
         this.label = label;
         this.parameters = parameters;
         this.nodes = ImmutableList.copyOf(nodes);
+    }
+
+    Set<Expression> getExpressions() {
+        Set<Expression> expressions = new HashSet<>();
+        for (TemplateNode node : nodes) {
+            if (node instanceof ExpressionNode) {
+                expressions.add(((ExpressionNode) node).getExpression());
+            } else if (node instanceof SectionNode) {
+                expressions.addAll(((SectionNode) node).getExpressions());
+            }
+        }
+        return expressions;
     }
 
     static class Builder {

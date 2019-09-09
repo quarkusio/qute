@@ -3,7 +3,9 @@ package io.quarkus.qute;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 
 import io.quarkus.qute.Results.Result;
 
@@ -59,10 +61,31 @@ public final class Expression {
     }
 
     @Override
+    public int hashCode() {
+        return Objects.hash(literalValue(), namespace, parts);
+    }
+
+    @Override
+    public boolean equals(Object obj) {
+        if (this == obj) {
+            return true;
+        }
+        if (obj == null) {
+            return false;
+        }
+        if (getClass() != obj.getClass()) {
+            return false;
+        }
+        Expression other = (Expression) obj;
+        return Objects.equals(literalValue(), other.literalValue()) && Objects.equals(namespace, other.namespace)
+                && Objects.equals(parts, other.parts);
+    }
+
+    @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
         builder.append("Expression [namespace=").append(namespace).append(", parts=").append(parts).append(", literal=")
-                .append(literal).append("]");
+                .append(literalValue()).append("]");
         return builder.toString();
     }
 
@@ -81,6 +104,17 @@ public final class Expression {
         }
         builder.append("}");
         return builder.toString();
+    }
+
+    private Object literalValue() {
+        if (literal != null) {
+            try {
+                return literal.get();
+            } catch (InterruptedException | ExecutionException e) {
+                return null;
+            }
+        }
+        return null;
     }
 
     private static List<String> split(String value) {
