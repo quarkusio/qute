@@ -53,13 +53,19 @@ public class EngineProducer {
 
         EngineBuilder builder = Engine.builder()
                 .addDefaultSectionHelpers().addDefaultValueResolvers();
+        
+        // Fallback reflection resolver
+        builder.addValueResolver(new ReflectionValueResolver());
+        
         // Allow anyone to customize the builder
         event.fire(builder);
+        
         // Resolve @Named beans
         builder.addNamespaceResolver(NamespaceResolver.builder("inject").resolve(ctx -> {
             InstanceHandle<Object> bean = Arc.container().instance(ctx.getName());
             return bean.isAvailable() ? bean.get() : Result.NOT_FOUND;
         }).build());
+        
         // Add generated resolvers
         for (String resolverClass : resolverClasses) {
             builder.addValueResolver(createResolver(resolverClass));
