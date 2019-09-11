@@ -1,4 +1,4 @@
-package io.quarkus.qute.runtime;
+package io.quarkus.qute;
 
 import java.lang.reflect.Array;
 import java.lang.reflect.Field;
@@ -8,19 +8,15 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
-
-import io.quarkus.arc.ComputingCache;
-import io.quarkus.qute.EvalContext;
-import io.quarkus.qute.Results;
-import io.quarkus.qute.ValueResolver;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 public class ReflectionValueResolver implements ValueResolver {
 
     /**
      * Lazy loading cache of lookup attempts (contains both hits and misses)
      */
-    private final ComputingCache<MemberKey, Optional<MemberWrapper>> memberCache = new ComputingCache<>(
-            ReflectionValueResolver::findWrapper);
+    private final ConcurrentMap<MemberKey, Optional<MemberWrapper>> memberCache = new ConcurrentHashMap<>();
 
     private static final MemberWrapper ARRAY_GET_LENGTH = Array::getLength;
 
@@ -42,7 +38,7 @@ public class ReflectionValueResolver implements ValueResolver {
 
         Object base = context.getBase();
         MemberKey key = MemberKey.newInstance(base, context.getName());
-        MemberWrapper wrapper = memberCache.getValue(key).orElse(null);
+        MemberWrapper wrapper = memberCache.computeIfAbsent(key, ReflectionValueResolver::findWrapper).orElse(null);
 
         if (wrapper == null) {
             return Results.NOT_FOUND;
