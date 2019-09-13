@@ -29,6 +29,8 @@ import io.quarkus.qute.Results.Result;
 @Singleton
 public class EngineProducer {
 
+    public static final String INJECT_NAMESPACE = "inject";
+    
     private static final Logger LOGGER = LoggerFactory.getLogger(EngineProducer.class);
 
     @Inject
@@ -62,7 +64,7 @@ public class EngineProducer {
         event.fire(builder);
         
         // Resolve @Named beans
-        builder.addNamespaceResolver(NamespaceResolver.builder("inject").resolve(ctx -> {
+        builder.addNamespaceResolver(NamespaceResolver.builder(INJECT_NAMESPACE).resolve(ctx -> {
             InstanceHandle<Object> bean = Arc.container().instance(ctx.getName());
             return bean.isAvailable() ? bean.get() : Result.NOT_FOUND;
         }).build());

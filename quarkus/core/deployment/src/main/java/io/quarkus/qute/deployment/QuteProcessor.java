@@ -13,6 +13,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
@@ -35,8 +36,11 @@ import org.slf4j.LoggerFactory;
 import io.quarkus.arc.deployment.AdditionalBeanBuildItem;
 import io.quarkus.arc.deployment.BeanArchiveIndexBuildItem;
 import io.quarkus.arc.deployment.BeanContainerBuildItem;
+import io.quarkus.arc.deployment.BeanDeploymentValidatorBuildItem;
 import io.quarkus.arc.deployment.ValidationPhaseBuildItem;
 import io.quarkus.arc.deployment.ValidationPhaseBuildItem.ValidationErrorBuildItem;
+import io.quarkus.arc.processor.BeanDeploymentValidator;
+import io.quarkus.arc.processor.BeanInfo;
 import io.quarkus.arc.processor.BuildExtension;
 import io.quarkus.arc.processor.DotNames;
 import io.quarkus.arc.processor.InjectionPointInfo;
@@ -62,6 +66,7 @@ import io.quarkus.qute.SectionHelperFactory;
 import io.quarkus.qute.Template;
 import io.quarkus.qute.api.ResourcePath;
 import io.quarkus.qute.api.VariantTemplate;
+import io.quarkus.qute.deployment.TemplatesAnalysisBuildItem.TemplateAnalysis;
 import io.quarkus.qute.generator.ExtensionMethodGenerator;
 import io.quarkus.qute.generator.ValueResolverGenerator;
 import io.quarkus.qute.runtime.EngineProducer;
@@ -89,10 +94,127 @@ public class QuteProcessor {
     }
 
     @BuildStep
+    TemplatesAnalysisBuildItem analyzeTemplates(List<TemplatePathBuildItem> templatePaths) {
+        long start = System.currentTimeMillis();
+        List<TemplateAnalysis> analysis = new ArrayList<>();
+
+        Engine dummyEngine = Engine.builder().addDefaultSectionHelpers().computeSectionHelper(name -> {
+            return new SectionHelperFactory<SectionHelper>() {
+                @Override
+                public SectionHelper initialize(SectionInitContext context) {
+                    return new SectionHelper() {
+                        @Override
+                        public CompletionStage<ResultNode> resolve(SectionResolutionContext context) {
+                            return CompletableFuture.completedFuture(ResultNode.NOOP);
+                        }
+                    };
+                }
+            };
+        }).build();
+
+        for (TemplatePathBuildItem path : templatePaths) {
+            try {
+                Template template = dummyEngine.parse(new String(Files.readAllBytes(path.getFullPath())));
+                analysis.add(new TemplateAnalysis(template.getExpressions(), path.getFullPath()));
+            } catch (IOException e) {
+                LOGGER.warn("Unable to analyze the template from path: " + path.getFullPath(), e);
+            }
+        }
+        LOGGER.debug("Finished analysis of {} templates  in {} ms",
+                analysis.size(), System.currentTimeMillis() - start);
+        return new TemplatesAnalysisBuildItem(analysis);
+    }
+
+    @BuildStep
+    void validateInjectedBeans(QuteConfig config, ApplicationArchivesBuildItem applicationArchivesBuildItem,
+            TemplatesAnalysisBuildItem analysis, BeanArchiveIndexBuildItem beanArchiveIndex,
+            BuildProducer<BeanDeploymentValidatorBuildItem> validator) {
+        ApplicationArchive applicationArchive = applicationArchivesBuildItem.getRootArchive();
+        Set<Expression> injectExpressions = collectInjectExpressions(analysis);
+        Set<String> expressionNames = injectExpressions.stream().map(ex -> ex.parts.get(0)).collect(Collectors.toSet());
+
+        if (!injectExpressions.isEmpty()) {
+            validator.produce(new BeanDeploymentValidatorBuildItem(new BeanDeploymentValidator() {
+
+                @Override
+                public void validate(ValidationContext context) {
+
+                    List<BeanInfo> beans = context.get(BuildExtension.Key.BEANS);
+                    Set<String> beanNames = beans.stream().map(BeanInfo::getName)
+                            .filter(Objects::nonNull).collect(Collectors.toSet());
+                    expressionNames.removeAll(beanNames);
+                    if (!expressionNames.isEmpty()) {
+                        // Injecting non-existing bean
+                        Map<String, List<String>> expressionToTemplate = new HashMap<>();
+                        for (String name : expressionNames) {
+                            List<String> templates = new ArrayList<>();
+                            for (TemplateAnalysis template : analysis.getAnalysis()) {
+                                if (collectInjectExpressions(analysis).stream().anyMatch(ex -> name.equals(ex.parts.get(0)))) {
+                                    templates.add(applicationArchive.getArchiveRoot().relativize(template.path).toString());
+                                }
+                            }
+                            expressionToTemplate.put(name, templates);
+                        }
+                        context.addDeploymentProblem(new IllegalStateException(
+                                "An inject: expression is referencing non-existing @Named bean: \n"
+                                        + expressionToTemplate.entrySet().stream()
+                                                .map(e -> "- " + e.getKey() + "="
+                                                        + e.getValue().stream().collect(Collectors.joining(",")))
+                                                .collect(Collectors.joining("\n"))));
+                    }
+
+                    // Validate properties
+                    for (TemplateAnalysis template : analysis.getAnalysis()) {
+                        for (Expression expression : collectInjectExpressions(template)) {
+                            if (expression.parts.size() > 1) {
+                                String name = expression.parts.get(0);
+                                BeanInfo bean = beans.stream()
+                                        .filter(b -> name.equals(b.getName())).findAny().orElse(null);
+                                if (bean != null && !beanHasProperty(name, expression.parts.get(1), bean, beanArchiveIndex.getIndex())) {
+                                    context.addDeploymentProblem(new IllegalStateException(
+                                            "Property " + expression.parts.get(1) + " not found on a @Named bean "
+                                                    + bean.toString()));
+                                }
+                            }
+                        }
+                    }
+                }
+            }));
+        }
+    }
+
+    private boolean beanHasProperty(String name, String property, BeanInfo bean, IndexView index) {
+        ClassInfo beanClass = bean.getImplClazz();
+        while (beanClass != null) {
+            // Fields
+            for (FieldInfo field : beanClass.fields()) {
+                if (Modifier.isPublic(field.flags()) && field.name().equals(property)) {
+                    return true;
+                }
+            }
+            // Methods
+            for (MethodInfo method : beanClass.methods()) {
+                if (Modifier.isPublic(method.flags()) && (method.name().equals(property)
+                        || ValueResolverGenerator.getPropertyName(method.name()).equals(property))) {
+                    return true;
+                }
+            }
+
+            if (beanClass.superName().equals(DotNames.OBJECT)) {
+                beanClass = null;
+            } else {
+                beanClass = index.getClassByName(beanClass.superName());
+            }
+        }
+        return false;
+    }
+
+    @BuildStep
     void generateValueResolvers(QuteConfig config, BuildProducer<GeneratedClassBuildItem> generatedClass,
             CombinedIndexBuildItem combinedIndex, BeanArchiveIndexBuildItem beanArchiveIndex,
             ApplicationArchivesBuildItem applicationArchivesBuildItem,
             List<TemplatePathBuildItem> templatePaths,
+            TemplatesAnalysisBuildItem templatesAnalysis,
             BuildProducer<GeneratedValueResolverBuildItem> generatedResolvers,
             BuildProducer<ReflectiveClassBuildItem> reflectiveClass) {
 
@@ -122,7 +244,7 @@ public class QuteProcessor {
             }
         };
 
-        Set<String> expressions = config.detectTemplateData ? collectExpressions(templatePaths) : null;
+        Set<String> expressions = config.detectTemplateData ? collectExpressions(templatesAnalysis) : null;
 
         Set<ClassInfo> controlled = new HashSet<>();
         Map<ClassInfo, AnnotationInstance> uncontrolled = new HashMap<>();
@@ -152,8 +274,10 @@ public class QuteProcessor {
             generator.generate(data);
         }
         // @Named beans
-        for (AnnotationInstance templateData : index.getAnnotations(DotNames.NAMED)) {
-            generator.generate(templateData.target().asClass());
+        for (AnnotationInstance named : index.getAnnotations(DotNames.NAMED)) {
+            if (named.target().kind() == Kind.CLASS) {
+                generator.generate(named.target().asClass());
+            }
         }
 
         Set<String> generateTypes = new HashSet<>();
@@ -176,39 +300,8 @@ public class QuteProcessor {
         }
     }
 
-    void processsTemplateData(IndexView index, AnnotationInstance templateData, AnnotationTarget annotationTarget,
-            Set<ClassInfo> controlled, Map<ClassInfo, AnnotationInstance> uncontrolled) {
-        AnnotationValue targetValue = templateData.value("target");
-        if (targetValue == null || targetValue.asClass().name().equals(ValueResolverGenerator.TEMPLATE_DATA)) {
-            controlled.add(annotationTarget.asClass());
-        } else {
-            ClassInfo uncontrolledClass = index.getClassByName(targetValue.asClass().name());
-            if (uncontrolledClass != null) {
-                uncontrolled.compute(uncontrolledClass, (c, v) -> {
-                    if (v == null) {
-                        return templateData;
-                    }
-                    // Merge annotation values
-                    AnnotationValue ignoreValue = templateData.value("ignore");
-                    if (ignoreValue == null || !ignoreValue.equals(v.value("ignore"))) {
-                        ignoreValue = AnnotationValue.createArrayValue("ignore", new AnnotationValue[] {});
-                    }
-                    AnnotationValue propertiesValue = templateData.value("properties");
-                    if (propertiesValue == null || propertiesValue.equals(v.value("properties"))) {
-                        propertiesValue = AnnotationValue.createBooleanValue("properties", false);
-                    }
-                    return AnnotationInstance.create(templateData.name(), templateData.target(),
-                            new AnnotationValue[] { ignoreValue, propertiesValue });
-                });
-            } else {
-                LOGGER.warn("@TemplateData#target() not available: {}", annotationTarget.asClass().name());
-            }
-        }
-    }
-
     @BuildStep
     void collectTemplates(QuteConfig config, ApplicationArchivesBuildItem applicationArchivesBuildItem,
-            BeanArchiveIndexBuildItem beanArchiveIndex,
             BuildProducer<HotDeploymentWatchedFileBuildItem> watchedPaths,
             BuildProducer<TemplatePathBuildItem> templatePaths,
             BuildProducer<SubstrateResourceBuildItem> substrateResources)
@@ -347,6 +440,80 @@ public class QuteProcessor {
         recorder.initVariants(beanContainer.getValue(), variants);
     }
 
+    void processsTemplateData(IndexView index, AnnotationInstance templateData, AnnotationTarget annotationTarget,
+            Set<ClassInfo> controlled, Map<ClassInfo, AnnotationInstance> uncontrolled) {
+        AnnotationValue targetValue = templateData.value("target");
+        if (targetValue == null || targetValue.asClass().name().equals(ValueResolverGenerator.TEMPLATE_DATA)) {
+            controlled.add(annotationTarget.asClass());
+        } else {
+            ClassInfo uncontrolledClass = index.getClassByName(targetValue.asClass().name());
+            if (uncontrolledClass != null) {
+                uncontrolled.compute(uncontrolledClass, (c, v) -> {
+                    if (v == null) {
+                        return templateData;
+                    }
+                    // Merge annotation values
+                    AnnotationValue ignoreValue = templateData.value("ignore");
+                    if (ignoreValue == null || !ignoreValue.equals(v.value("ignore"))) {
+                        ignoreValue = AnnotationValue.createArrayValue("ignore", new AnnotationValue[] {});
+                    }
+                    AnnotationValue propertiesValue = templateData.value("properties");
+                    if (propertiesValue == null || propertiesValue.equals(v.value("properties"))) {
+                        propertiesValue = AnnotationValue.createBooleanValue("properties", false);
+                    }
+                    return AnnotationInstance.create(templateData.name(), templateData.target(),
+                            new AnnotationValue[] { ignoreValue, propertiesValue });
+                });
+            } else {
+                LOGGER.warn("@TemplateData#target() not available: {}", annotationTarget.asClass().name());
+            }
+        }
+    }
+
+    private Set<String> collectExpressions(TemplatesAnalysisBuildItem analysis) {
+        Set<String> expressions = new HashSet<>();
+        for (TemplateAnalysis template : analysis.getAnalysis()) {
+            for (Expression expression : template.expressions) {
+                if (expression.literal != null) {
+                    continue;
+                }
+                Iterable<String> parts;
+                if (expression.namespace != null && expression.parts.size() > 1) {
+                    parts = expression.parts.subList(1, expression.parts.size());
+                } else {
+                    parts = expression.parts;
+                }
+                for (String part : parts) {
+                    if (part.indexOf("(") == -1) {
+                        expressions.add(part);
+                    }
+                }
+            }
+        }
+        return expressions;
+    }
+
+    private Set<Expression> collectInjectExpressions(TemplatesAnalysisBuildItem analysis) {
+        Set<Expression> injectExpressions = new HashSet<>();
+        for (TemplateAnalysis template : analysis.getAnalysis()) {
+            injectExpressions.addAll(collectInjectExpressions(template));
+        }
+        return injectExpressions;
+    }
+
+    private Set<Expression> collectInjectExpressions(TemplateAnalysis analysis) {
+        Set<Expression> injectExpressions = new HashSet<>();
+        for (Expression expression : analysis.expressions) {
+            if (expression.literal != null) {
+                continue;
+            }
+            if (EngineProducer.INJECT_NAMESPACE.equals(expression.namespace)) {
+                injectExpressions.add(expression);
+            }
+        }
+        return injectExpressions;
+    }
+
     private Set<ClassInfo> detectTemplateData(IndexView index, Predicate<String> appClassPredicate,
             Set<String> expressions) {
         long start = System.currentTimeMillis();
@@ -417,59 +584,6 @@ public class QuteProcessor {
             }
         }
         return false;
-    }
-
-    private Set<String> collectExpressions(List<TemplatePathBuildItem> templatePaths) {
-        long start = System.currentTimeMillis();
-        Set<String> ret = new HashSet<>();
-        Set<Expression> expressions = new HashSet<>();
-
-        Engine dummy = Engine.builder().addDefaultSectionHelpers().computeSectionHelper(name -> {
-            return new SectionHelperFactory<SectionHelper>() {
-
-                @Override
-                public SectionHelper initialize(SectionInitContext context) {
-                    return new SectionHelper() {
-
-                        @Override
-                        public CompletionStage<ResultNode> resolve(SectionResolutionContext context) {
-                            return CompletableFuture.completedFuture(ResultNode.NOOP);
-                        }
-
-                    };
-                }
-
-            };
-        }).build();
-
-        for (TemplatePathBuildItem path : templatePaths) {
-            try {
-                Template template = dummy.parse(new String(Files.readAllBytes(path.getFullPath())));
-                expressions.addAll(template.getExpressions());
-            } catch (IOException e) {
-                LOGGER.warn("Unable to read the template from path: " + path.getFullPath(), e);
-            }
-        }
-
-        for (Expression expression : expressions) {
-            if (expression.literal != null) {
-                continue;
-            }
-            Iterable<String> parts;
-            if (expression.namespace != null && expression.parts.size() > 1) {
-                parts = expression.parts.subList(1, expression.parts.size());
-            } else {
-                parts = expression.parts;
-            }
-            for (String part : parts) {
-                if (part.indexOf("(") == -1) {
-                    ret.add(part);
-                }
-            }
-        }
-        LOGGER.debug("Collected {} expressions in {} ms: \n{}",
-                ret.size(), System.currentTimeMillis() - start, ret);
-        return ret;
     }
 
     private String getName(InjectionPointInfo injectionPoint) {
