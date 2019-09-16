@@ -26,7 +26,7 @@ public interface ValueResolver extends Resolver, WithPriority {
         return new Builder<>(baseClass);
     }
 
-    class Builder<BASE> implements Supplier<ValueResolver> {
+    static class Builder<BASE> implements Supplier<ValueResolver> {
 
         private Predicate<EvalContext> appliesTo;
         private Function<EvalContext, CompletionStage<Object>> resolve;

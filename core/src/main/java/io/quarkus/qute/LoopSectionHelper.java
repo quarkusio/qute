@@ -3,7 +3,6 @@ package io.quarkus.qute;
 import static io.quarkus.qute.Parameter.EMPTY;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -13,21 +12,22 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Stream;
 
+import io.quarkus.qute.Results.Result;
+
 /**
  * Basic sequential {@code loop} statement.
  */
 public class LoopSectionHelper implements SectionHelper {
 
-    private final boolean noAlias;
+    private static final String DEFAULT_ALIAS = "it";
+
     private final String alias;
     private final Expression iterable;
 
     public LoopSectionHelper(String alias, String iterable) {
         if (alias.equals(Parameter.EMPTY)) {
-            this.noAlias = true;
-            this.alias = null;
+            this.alias = DEFAULT_ALIAS;
         } else {
-            this.noAlias = false;
             this.alias = alias;
         }
         this.iterable = Expression.parse(Objects.requireNonNull(iterable));
@@ -77,11 +77,8 @@ public class LoopSectionHelper implements SectionHelper {
 
     CompletionStage<ResultNode> nextElement(Object element, int index, boolean hasNext, SectionResolutionContext context) {
         AtomicReference<ResolutionContext> resolutionContextHolder = new AtomicReference<>();
-        List<NamespaceResolver> namespaceResolvers = noAlias
-                ? Collections.singletonList(new IterationMetaResolver(index, hasNext))
-                : ImmutableList.of(new IterationMetaResolver(index, hasNext),
-                        new AliasResolver(alias, resolutionContextHolder));
-        ResolutionContext child = context.resolutionContext().createChild(element, namespaceResolvers);
+        ResolutionContext child = context.resolutionContext().createChild(new IterationElement(alias, element, index, hasNext),
+                null);
         resolutionContextHolder.set(child);
         return context.execute(child);
     }
@@ -111,43 +108,48 @@ public class LoopSectionHelper implements SectionHelper {
 
     }
 
-    static class IterationMetaResolver implements NamespaceResolver {
+    static class IterationElement implements Mapper {
 
+        final String alias;
+        final Object element;
         final int index;
         final boolean hasNext;
 
-        public IterationMetaResolver(int index, boolean hasNext) {
+        public IterationElement(String alias, Object element, int index, boolean hasNext) {
+            this.alias = alias;
+            this.element = element;
             this.index = index;
             this.hasNext = hasNext;
         }
 
         @Override
-        public String getNamespace() {
-            return "iter";
-        }
-
-        @Override
-        public CompletionStage<Object> resolve(EvalContext context) {
-            switch (context.getName()) {
+        public Object get(String key) {
+            if (alias.equals(key)) {
+                return element;
+            }
+            // Iteration metadata
+            switch (key) {
                 case "count":
-                    return CompletableFuture.completedFuture(index + 1);
+                    return index + 1;
                 case "index":
-                    return CompletableFuture.completedFuture(index);
+                    return index;
                 case "indexParity":
-                    return CompletableFuture.completedFuture(index % 2 != 0 ? "even" : "odd");
+                    return index % 2 != 0 ? "even" : "odd";
                 case "hasNext":
-                    return CompletableFuture.completedFuture(hasNext);
+                    return hasNext;
+                case "isLast":
+                case "last":    
+                    return !hasNext;
                 case "isOdd":
                 case "odd":
-                    return CompletableFuture.completedFuture(index % 2 == 0);
+                    return index % 2 == 0;
                 case "isEven":
                 case "even":
-                    return CompletableFuture.completedFuture(index % 2 != 0);
+                    return index % 2 != 0;
                 default:
-                    return Results.NOT_FOUND;
+                    return Result.NOT_FOUND;
             }
         }
-
     }
 
 }

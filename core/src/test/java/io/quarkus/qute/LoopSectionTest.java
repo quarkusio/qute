@@ -9,11 +9,6 @@ import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 
-import io.quarkus.qute.Engine;
-import io.quarkus.qute.IfSectionHelper;
-import io.quarkus.qute.LoopSectionHelper;
-import io.quarkus.qute.Template;
-
 public class LoopSectionTest {
 
     @Test
@@ -31,14 +26,14 @@ public class LoopSectionTest {
                 .addSectionHelper(new LoopSectionHelper.Factory()).addDefaultValueResolvers()
                 .build();
 
-        Template template = engine.parse("{#for item in this}{iter:count}.{name}={item:name}{#if iter:hasNext}\n{/if}{/for}");
-        assertEquals("1.Lu=Lu\n2.NOT_FOUND=NOT_FOUND", template.render(listOfMaps));
+        Template template = engine.parse("{#for item in this}{count}.{item.name}{#if hasNext}\n{/if}{/for}");
+        assertEquals("1.Lu\n2.NOT_FOUND", template.render(listOfMaps));
 
-        template = engine.parse("{#each this}{iter:count}.{name}={name}{#if iter:hasNext}\n{/if}{/each}");
-        assertEquals("1.Lu=Lu\n2.NOT_FOUND=NOT_FOUND",
+        template = engine.parse("{#each this}{count}.{it.name}{#if hasNext}\n{/if}{/each}");
+        assertEquals("1.Lu\n2.NOT_FOUND",
                 template.render(listOfMaps));
 
-        template = engine.parse("{#each this}{#if iter:odd}odd{:else}even{/if}{/each}");
+        template = engine.parse("{#each this}{#if odd}odd{:else}even{/if}{/each}");
         assertEquals("oddeven",
                 template.render(listOfMaps));
     }
@@ -52,7 +47,7 @@ public class LoopSectionTest {
                 .addSectionHelper(new LoopSectionHelper.Factory()).addDefaultValueResolvers()
                 .build();
 
-        assertEquals("name:Lu", engine.parse("{#each this}{key}:{value}{/each}").render(map));
+        assertEquals("name:Lu", engine.parse("{#each this}{it.key}:{it.value}{/each}").render(map));
     }
 
     @Test
@@ -67,7 +62,36 @@ public class LoopSectionTest {
                 .build();
 
         assertEquals("alpha:charlie:",
-                engine.parse("{#each this}{this}:{/each}").render(data.stream().filter(e -> !e.startsWith("b"))));
+                engine.parse("{#each this}{it}:{/each}").render(data.stream().filter(e -> !e.startsWith("b"))));
+    }
+
+    @Test
+    public void testNestedLoops() {
+        List<String> data = new ArrayList<>();
+        data.add("alpha");
+
+        Engine engine = Engine.builder()
+                .addSectionHelper(new LoopSectionHelper.Factory())
+                .addSectionHelper(new IfSectionHelper.Factory())
+                .addDefaultValueResolvers()
+                .addValueResolver(ValueResolver.match(String.class).andMatch("chars")
+                        .resolve((str, n) -> {
+                            List<Character> chars = new ArrayList<>();
+                            for (char c : str.toCharArray()) {
+                                chars.add(c);
+                            }
+                            return chars;
+                        }))
+                .build();
+
+        String template = "{#for name in this}"
+                + "{count}.{name}: {#for char in name.chars}"
+                + "{name} - char at {index} = {char}{#if hasNext},{/}"
+                + "{/}{/}";
+
+        assertEquals(
+                "1.alpha: alpha - char at 0 = a,alpha - char at 1 = l,alpha - char at 2 = p,alpha - char at 3 = h,alpha - char at 4 = a",
+                engine.parse(template).render(data));
     }
 
 }

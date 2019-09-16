@@ -1,10 +1,12 @@
 <li>
 <strong>{it.name.upper ?: "Item with no name!"}</strong>:
-{#if it.price > limit} 
-   {it.discountedPrice.scaled(0)} (<s>{it.price}</s>)
+
+{#if it.price > limit}
+    {it.discountedPrice.scaled(0)} (<s>{it.price}</s>)
 {:else}
-   {it.price}
+    {it.price}
 {/if}
+
 {! toLowerCase should be resolved by reflection resolver... !}
 [ID: {it.name.toLowerCase ?: "N/A"}]
 </li>

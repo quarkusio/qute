@@ -65,6 +65,7 @@ Dynamic parts of a template include:
 
 An expression consists of an optional namespace followed by a colon `:` and parts separated by dot `.`.
 The first part of the expression is always resolved against the <<current_context_object, current context object>>.
+If no result is found for the first part it's resolved against the parent context object (if available).
 For an expression that starts with a namespace the current context object is found using the available `NamespaceResolver`s.
 For an expression that does not start with a namespace the current context object is *derived from the position* of the tag.
 All other parts are resolved using `ValueResolver`s against the result of the previous resolution.
@@ -97,18 +98,20 @@ An expression part could be a "virtual method" in which case the name can be fol
 If an expression does not specify a namespace the current context object is derived from the position of the tag.
 By default, the current context object is the root context object that is passed to the `Template.render()` method and is also always accessible using the `data` namespace.
 However, section tags may change the current context object.
-A typical example is each/for loop - during iteration the content of the section is rendered with each element as the current context object:
+A typical example is for/each loop - during iteration the content of the section is rendered with each element as the current context object:
 
 ----
-{name} <1>
 {#each items}
- {name} <2>
- {data:name} <3>
+ {it.name} <1>
 {/each}
+
+{! Another form of iteration... !}
+{#for item in items}
+  {item.name} <2>
+{/for}
 ----
-<1> this "name" is resolved against the root context object
-<2> this "name" is resolved against the iteration element
-<3> this "name" is resolved against the root context object
+<1> `it` is an implicit alias. "name" is resolved against the current iteration element.
+<2> Loop with an explicit alias `item`.
 
 === Sections
 
@@ -121,11 +124,11 @@ A section helper that defines the logic of a section can "execute" any of the bl
 
 ----
 {#if item.name is 'sword'}
-It's a sword!
+  It's a sword!
 {:else if item.name is 'shield'}
-It's a shield!
+  It's a shield!
 {:else}
-Item is nor a sword nor a shield.
+  Item is nor a sword nor a shield.
 {/if}
 ----
 
@@ -139,24 +142,22 @@ The first one is using `each` alias.
 
 ----
 {#each items}
- {name} <1>
+ {it.name} <1>
 {/each}
 ----
-<1> "name" is resolved against the current iteration element
+<1> `it` is an implicit alias. "name" is resolved against the current iteration element.
 
-The other one is using `for` alias and can specify the namespace used to reference the iteration element:
+The other one is using `for` alias and can specify the alias used to reference the iteration element:
 ----
-{#for item in items} <1>
-  {item:name} <2>
+{#for item in items}
+  {item.name}
 {/for}
 ----
-<1> "item" is the namespace
-<2> The namespace is optional but makes it possible to distinguish the context object e.g. when using nested loops
 
-It's also possible to access the iteration metadata inside the loop, under the `iter` namespace:
+It's also possible to access the iteration metadata inside the loop:
 ----
 {#each items}
- {iter:count}. {name} <1>
+ {count}. {it.name} <1>
 {/each}
 ----
 <1> `count` represents one-based index. Metadata also include zero-based `index`, `hasNext`, `odd`, `even`.
@@ -235,7 +236,7 @@ It's also possible to specify an alias that can be used as a namespace:
 
 ----
 {#with item.parent as myParent}
- {myParent:name}
+ {myParent.name}
 {/with}
 ----
 
@@ -393,7 +394,7 @@ This template extension method makes it possible to render the following templat
 [source,html]
 ----
 {#each items} <1>
-   {discountedPrice}
+   {it.discountedPrice}
 {/each}
 ----
 <1> Let's suppose that `items` is resolved to a list of `Item` instances.
@@ -422,7 +423,7 @@ Any instance of `Item` can be used directly in the template:
 [source,html]
 ----
 {#each items} <1>
-   {price}
+   {it.price}
 {/each}
 ----
 <1> Let's suppose that `items` is resolved to a list of `Item` instances.

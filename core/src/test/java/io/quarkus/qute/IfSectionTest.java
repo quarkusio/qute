@@ -53,6 +53,7 @@ public class IfSectionTest {
         assertEquals("OK", engine.parse("{#if two is 2}OK{/if}").render(data));
         assertEquals("OK", engine.parse("{#if name != null}OK{/if}").render(data));
         assertEquals("OK", engine.parse("{#if name is null}NOK{:else}OK{/if}").render(data));
+        assertEquals("OK", engine.parse("{#if !false}OK{/if}").render(data));
     }
 
 }

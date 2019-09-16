@@ -18,7 +18,7 @@ public class WithSectionTest {
 
     @Test
     public void testWith() {
-        Engine engine = Engine.builder().addSectionHelper(new WithSectionHelper.Factory())
+        Engine engine = Engine.builder().addDefaultValueResolvers().addSectionHelper(new WithSectionHelper.Factory())
                 .addValueResolver(ValueResolvers.mapResolver())
                 .build();
 
@@ -32,7 +32,7 @@ public class WithSectionTest {
 
     @Test
     public void testAlias() {
-        Engine engine = Engine.builder().addSectionHelper(new WithSectionHelper.Factory())
+        Engine engine = Engine.builder().addDefaultValueResolvers().addSectionHelper(new WithSectionHelper.Factory())
                 .addValueResolver(ValueResolvers.mapResolver())
                 .addValueResolver(v -> v.getBase().getClass().equals(String.class) && v.getName().equals("length")
                         ? CompletableFuture.completedFuture(3)
@@ -40,7 +40,7 @@ public class WithSectionTest {
                 .build();
 
         Template template = engine
-                .parse("{#with map as myMap}{myMap:key} {#with key as myKey}{myMap:key}={myKey:length}{/with}{/with}");
+                .parse("{#with map as myMap}{myMap.key} {#with myMap.key as myKey}{myMap.key}={myKey.length}{/with}{/with}");
         Map<String, Object> data = new HashMap<>();
         Map<String, Object> map = new HashMap<>();
         map.put("key", "val");

@@ -22,6 +22,7 @@ public class IfSectionHelper implements SectionHelper {
     private static final String OPERAND = "operand";
     private static final String ELSE = "else";
     private static final String IF = "if";
+    private static final String NEGATE = "!";
 
     private final List<Block> blocks;
 
@@ -149,18 +150,30 @@ public class IfSectionHelper implements SectionHelper {
 
         public Block(SectionBlock block) {
             this.block = block;
-            String conditionParam = block.parameters.get(CONDITION);
-            this.condition = conditionParam != null ? Expression.parse(conditionParam) : null;
-            this.operator = Operator.from(block.parameters.get(OPERATOR));
+            Operator operator = Operator.from(block.parameters.get(OPERATOR));
+            Expression operand;
             if (operator != null) {
                 String operandParam = block.parameters.get(OPERAND);
                 if (operandParam == null) {
                     throw new IllegalArgumentException("Operator set but no operand param present");
                 }
-                this.operand = Expression.parse(operandParam);
+                operand = Expression.parse(operandParam);
             } else {
-                this.operand = null;
+                operand = null;
             }
+            String conditionParam = block.parameters.get(CONDITION);
+            if (conditionParam != null && conditionParam.startsWith(NEGATE)) {
+                if (operand != null) {
+                    throw new IllegalArgumentException("Logical complement operator may not be used for multiple operands");
+                } else {
+                    conditionParam = conditionParam.substring(1, conditionParam.length());
+                    operator = Operator.EQ;
+                    operand = Expression.single("false");
+                }
+            }
+            this.condition = conditionParam != null ? Expression.parse(conditionParam) : null;
+            this.operand = operand;
+            this.operator = operator;
         }
 
     }

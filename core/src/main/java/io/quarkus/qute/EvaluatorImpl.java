@@ -19,10 +19,10 @@ class EvaluatorImpl implements Evaluator {
 
     private static final Logger LOGGER = LoggerFactory.getLogger(EvaluatorImpl.class);
 
-    private final List<ValueResolver> valueResolvers;
+    private final List<ValueResolver> resolvers;
 
     EvaluatorImpl(List<ValueResolver> valueResolvers) {
-        this.valueResolvers = valueResolvers;
+        this.resolvers = valueResolvers;
     }
 
     @Override
@@ -35,11 +35,11 @@ class EvaluatorImpl implements Evaluator {
                 LOGGER.error("No namespace resolver found for: {}", expression.namespace);
                 return Futures.failure(new IllegalStateException("No resolver for namespace: " + expression.namespace));
             }
-            EvalContext context = new EvalContextImpl(null, parts.next(), resolutionContext);
+            EvalContext context = new EvalContextImpl(false, null, parts.next(), resolutionContext);
             LOGGER.debug("Found '{}' namespace resolver: {}", expression.namespace, resolver.getClass());
             return resolver.resolve(context).thenCompose(r -> {
                 if (parts.hasNext()) {
-                    return resolveReference(r, parts, valueResolvers.iterator(), resolutionContext);
+                    return resolveReference(false, r, parts, resolutionContext);
                 } else {
                     return CompletableFuture.completedFuture(r);
                 }
@@ -49,7 +49,7 @@ class EvaluatorImpl implements Evaluator {
                 return expression.literal;
             } else {
                 parts = expression.parts.iterator();
-                return resolveReference(resolutionContext.getData(), parts, valueResolvers.iterator(), resolutionContext);
+                return resolveReference(true, resolutionContext.getData(), parts, resolutionContext);
             }
         }
     }
@@ -63,49 +63,58 @@ class EvaluatorImpl implements Evaluator {
                 if (resolver.getNamespace().equals(namespace)) {
                     return resolver;
                 }
-            }    
+            }
         }
         return findNamespaceResolver(namespace, resolutionContext.getParent());
     }
 
-    private CompletionStage<Object> resolveReference(Object ref, Iterator<String> parts,
-            Iterator<ValueResolver> resolvers, ResolutionContext resolutionContext) {
-        return resolve(new EvalContextImpl(ref, parts.next(), resolutionContext), resolvers).thenCompose(r -> {
+    private CompletionStage<Object> resolveReference(boolean tryParent, Object ref, Iterator<String> parts,
+            ResolutionContext resolutionContext) {
+        return resolve(new EvalContextImpl(tryParent, ref, parts.next(), resolutionContext), resolvers.iterator()).thenCompose(r -> {
             if (parts.hasNext()) {
-                return resolveReference(r, parts, valueResolvers.iterator(), resolutionContext);
+                return resolveReference(false, r, parts, resolutionContext);
             } else {
                 return CompletableFuture.completedFuture(r);
             }
         });
     }
 
-    private CompletionStage<Object> resolve(EvalContextImpl valueContext, Iterator<ValueResolver> resolvers) {
+    private CompletionStage<Object> resolve(EvalContextImpl evalContext, Iterator<ValueResolver> resolvers) {
         if (!resolvers.hasNext()) {
+            ResolutionContext parent = evalContext.resolutionContext.getParent();
+            if (evalContext.tryParent && parent != null) {
+                // Continue with parent context
+                return resolve(
+                        new EvalContextImpl(false, parent.getData(), evalContext.name, parent),
+                        this.resolvers.iterator());
+            }
             return Results.NOT_FOUND;
         }
         ValueResolver resolver = resolvers.next();
-        if (resolver.appliesTo(valueContext)) {
-            return resolver.resolve(valueContext).thenCompose(r -> {
+        if (resolver.appliesTo(evalContext)) {
+            return resolver.resolve(evalContext).thenCompose(r -> {
                 if (Result.NOT_FOUND.equals(r)) {
-                    return resolve(valueContext, resolvers);
+                    return resolve(evalContext, resolvers);
                 } else {
                     return CompletableFuture.completedFuture(r);
                 }
             });
         } else {
             // Try next resolver
-            return resolve(valueContext, resolvers);
+            return resolve(evalContext, resolvers);
         }
     }
 
     class EvalContextImpl implements EvalContext {
 
+        final boolean tryParent;
         final Object base;
         final String name;
         final List<String> params;
         final ResolutionContext resolutionContext;
 
-        public EvalContextImpl(Object base, String name, ResolutionContext resolutionContext) {
+        public EvalContextImpl(boolean lookupParent, Object base, String name, ResolutionContext resolutionContext) {
+            this.tryParent = lookupParent;
             this.base = base;
             this.resolutionContext = resolutionContext;
             int start = name.indexOf("(");

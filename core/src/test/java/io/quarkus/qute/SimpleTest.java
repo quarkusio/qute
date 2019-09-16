@@ -29,7 +29,7 @@ public class SimpleTest {
         Engine engine = Engine.builder().addDefaultSectionHelpers().addDefaultValueResolvers()
                 .build();
 
-        Template template = engine.parse("{#if test}Hello {name}!{/}\n\n{#for item in list}{item:name}{/}");
+        Template template = engine.parse("{#if test}Hello {name}!{/}\n\n{#for item in list}{item.name}{/}");
         assertEquals("Hello world!\n\nLu", template.render(data));
     }
 

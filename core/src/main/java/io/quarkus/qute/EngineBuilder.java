@@ -3,6 +3,7 @@ package io.quarkus.qute;
 import static io.quarkus.qute.ValueResolvers.collectionResolver;
 import static io.quarkus.qute.ValueResolvers.mapEntryResolver;
 import static io.quarkus.qute.ValueResolvers.mapResolver;
+import static io.quarkus.qute.ValueResolvers.mapperResolver;
 import static io.quarkus.qute.ValueResolvers.orResolver;
 import static io.quarkus.qute.ValueResolvers.thisResolver;
 
@@ -83,7 +84,7 @@ public final class EngineBuilder {
      * @return self
      */
     public EngineBuilder addDefaultValueResolvers() {
-        return addValueResolvers(mapResolver(), mapEntryResolver(), collectionResolver(),
+        return addValueResolvers(mapResolver(), mapperResolver(), mapEntryResolver(), collectionResolver(),
                 thisResolver(), orResolver());
     }
 

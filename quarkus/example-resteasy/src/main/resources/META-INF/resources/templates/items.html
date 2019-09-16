@@ -14,14 +14,14 @@ body {
     <h1>List of Items</h1>
     <p>We have found {items.size} items.</p>
     <ol>
-    {#each items}
-        <li><strong>{name.toUpperCase ?: "NO NAME"}</strong>:
-        {#if price > data:limit} 
-          {discountedPrice.scaled(0)} (<s>{price}</s>)
+    {#for item in items}
+        <li><strong>{item.name.toUpperCase ?: "NO NAME"}</strong>:
+        {#if item.price > data:limit} 
+          {item.discountedPrice.scaled(0)} (<s>{item.price}</s>)
         {:else}
-          {price}
+          {item.price}
         {/if}</li>
-    {/each}
+    {/for}
     </ol>
 </body>
 

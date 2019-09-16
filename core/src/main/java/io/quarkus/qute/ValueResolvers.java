@@ -24,16 +24,39 @@ public final class ValueResolvers {
      * {@code foo.or(bar)},{@code foo or true},{@code name ?: 'elvis'}
      */
     public static ValueResolver orResolver() {
-        return ValueResolver.match(Object.class).andAppliesTo(ValueResolvers::orAppliesTo).resolveAsync(ValueResolvers::orResolveAsync)
+        return ValueResolver.match(Object.class).andAppliesTo(ValueResolvers::orAppliesTo)
+                .resolveAsync(ValueResolvers::orResolveAsync)
                 .build();
     }
 
     public static ValueResolver mapEntryResolver() {
         return ValueResolver.match(Entry.class).resolve(ValueResolvers::entryResolve).build();
     }
-    
+
     public static ValueResolver mapResolver() {
         return ValueResolver.match(Map.class).resolveAsync(ValueResolvers::mapResolveAsync).build();
+    }
+
+    public static ValueResolver mapperResolver() {
+        return new ValueResolver() {
+            
+            public boolean appliesTo(EvalContext context) {
+                return context.getBase() instanceof Mapper;
+            }
+            
+            @Override
+            public int getPriority() {
+                // mapper is used in loops so we use a higher priority to jump the queue
+                return 5;
+            }
+
+            @Override
+            public CompletionStage<Object> resolve(EvalContext context) {
+                Mapper mapper = (Mapper) context.getBase();
+                return CompletableFuture.completedFuture(mapper.get(context.getName()));
+            }
+            
+        };
     }
 
     // helper methods
@@ -85,7 +108,7 @@ public final class ValueResolvers {
                 return Result.NOT_FOUND;
         }
     }
-    
+
     @SuppressWarnings("rawtypes")
     private static CompletionStage<Object> mapResolveAsync(EvalContext context) {
         Map map = (Map) context.getBase();

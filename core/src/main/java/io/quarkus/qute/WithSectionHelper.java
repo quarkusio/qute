@@ -1,10 +1,9 @@
 package io.quarkus.qute;
 
-import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
-import java.util.concurrent.atomic.AtomicReference;
 
+import io.quarkus.qute.Results.Result;
 import io.quarkus.qute.SectionHelperFactory.SectionInitContext;
 
 /**
@@ -34,12 +33,21 @@ public class WithSectionHelper implements SectionHelper {
     public CompletionStage<ResultNode> resolve(SectionResolutionContext context) {
         return context.resolutionContext().evaluate(object)
                 .thenCompose(with -> {
-                    AtomicReference<ResolutionContext> resolutionContextHolder = new AtomicReference<>();
-                    List<NamespaceResolver> namespaceResolvers = alias != null
-                            ? Collections.singletonList(new AliasResolver(alias, resolutionContextHolder))
-                            : null;
-                    ResolutionContext child = context.resolutionContext().createChild(with, namespaceResolvers);
-                    resolutionContextHolder.set(child);
+                    Object data;
+                    if (alias != null) {
+                        data = new Mapper() {
+                            @Override
+                            public Object get(String key) {
+                                if (alias.equals(key)) {
+                                    return with;
+                                }
+                                return Result.NOT_FOUND;
+                            }
+                        };
+                    } else {
+                        data = with;
+                    }
+                    ResolutionContext child = context.resolutionContext().createChild(data, null);
                     return context.execute(main, child);
                 });
     }

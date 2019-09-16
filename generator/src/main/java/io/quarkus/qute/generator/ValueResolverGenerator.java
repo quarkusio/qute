@@ -120,6 +120,7 @@ public class ValueResolverGenerator {
         ClassCreator valueResolver = ClassCreator.builder().classOutput(classOutput).className(generatedName)
                 .interfaces(ValueResolver.class).build();
 
+        implementGetPriority(valueResolver);
         implementAppliesTo(valueResolver, clazz);
         implementResolve(valueResolver, clazzName, clazz, filters);
 
@@ -133,6 +134,12 @@ public class ValueResolverGenerator {
                 LOGGER.warn("Skipping super class {} - not found in the index", clazz.superClassType());
             }
         }
+    }
+    
+    private void implementGetPriority(ClassCreator valueResolver) {
+        MethodCreator getPriority = valueResolver.getMethodCreator("getPriority", int.class)
+                .setModifiers(ACC_PUBLIC);
+        getPriority.returnValue(getPriority.load(10));
     }
 
     private void implementResolve(ClassCreator valueResolver, String clazzName, ClassInfo clazz,

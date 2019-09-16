@@ -21,7 +21,7 @@ public class SimplePublisherTest {
     @Test
     public void test() throws InterruptedException {
         Engine engine = Engine.builder().addDefaultSectionHelpers().addDefaultValueResolvers().build();
-        Template template = engine.parse("{#each}{this}{/}");
+        Template template = engine.parse("{#each}{it}{/}");
         List<String> data = Arrays.asList("foo", "foo", "alpha");
         Publisher<String> publisher = template.render().setData(data).publisher();
 
