@@ -2,8 +2,8 @@ package io.quarkus.qute.example;
 
 import static io.vertx.core.http.HttpMethod.GET;
 
+import java.math.BigDecimal;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.stream.Collectors;
 
 import javax.enterprise.event.Observes;
@@ -21,7 +21,8 @@ public class SimpleResource {
 
     @Route(path = "/simple", methods = GET, produces = "text/html")
     public void simple(RoutingExchange exchange) {
-        exchange.ok(engine.getTemplate("simple.html").render(Collections.singletonList("foo")));
+        Item item = new Item("me", BigDecimal.ONE);
+        exchange.ok(engine.getTemplate("simple.html").render().putData("item", item).getResult());
     }
 
     void addErrorHandler(@Observes Router router) {

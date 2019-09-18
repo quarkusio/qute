@@ -22,6 +22,11 @@ class ResolutionContextImpl implements ResolutionContext {
     }
 
     @Override
+    public CompletionStage<Object> evaluate(String value) {
+        return evaluate(Expression.from(value));
+    }
+
+    @Override
     public CompletionStage<Object> evaluate(Expression expression) {
         return evaluator.evaluate(expression, this);
     }

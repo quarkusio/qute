@@ -33,7 +33,7 @@ public class ExpressionTest {
 
     private void verify(String value, String namespace, List<String> parts, CompletableFuture<Object> literal)
             throws InterruptedException, ExecutionException {
-        Expression exp = Expression.parse(value);
+        Expression exp = Expression.from(value);
         assertEquals(namespace, exp.namespace);
         assertEquals(parts, exp.parts);
         if (literal == null) {

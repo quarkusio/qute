@@ -14,9 +14,7 @@ public interface ResolutionContext {
      * @param expression
      * @return the result of the evaluated expression
      */
-    default CompletionStage<Object> evaluate(String expression) {
-        return evaluate(Expression.parse(expression));
-    }
+    CompletionStage<Object> evaluate(String expression);
 
     /**
      * 

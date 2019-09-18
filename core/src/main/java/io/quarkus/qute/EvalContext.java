@@ -29,9 +29,7 @@ public interface EvalContext {
      */
     List<String> getParams();
 
-    default CompletionStage<Object> evaluate(String expression) {
-        return evaluate(Expression.parse(expression));
-    }
+    CompletionStage<Object> evaluate(String expression);
 
     CompletionStage<Object> evaluate(Expression expression);
 

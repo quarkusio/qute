@@ -17,7 +17,7 @@ final class SectionInitContextImpl implements SectionInitContext {
         this.engine = engine;
         this.blocks = blocks;
     }
-    
+
     /**
      * 
      * @return the params of the main block
@@ -32,6 +32,16 @@ final class SectionInitContextImpl implements SectionInitContext {
 
     public String getParameter(String name) {
         return getParameters().get(name);
+    }
+
+    @Override
+    public Expression getExpression(String parameterName) {
+        return blocks.get(0).expressions.get(parameterName);
+    }
+
+    @Override
+    public Expression parseValue(String value) {
+        return Expression.from(value);
     }
 
     public List<SectionBlock> getBlocks() {

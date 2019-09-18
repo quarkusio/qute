@@ -156,7 +156,7 @@ public class ReflectionValueResolver implements ValueResolver {
     private static boolean matchesPrefix(String name, String methodName,
             String prefix) {
         return methodName.startsWith(prefix)
-                && decapitalize(methodName.substring(0, prefix.length())).equals(name);
+                && decapitalize(methodName.substring(prefix.length(), methodName.length())).equals(name);
     }
 
     static String decapitalize(String name) {

@@ -2,8 +2,11 @@ package io.quarkus.qute;
 
 import static io.quarkus.qute.Futures.evaluateParams;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.stream.Collectors;
@@ -56,8 +59,22 @@ public class SetSectionHelper implements SectionHelper {
         @Override
         public SetSectionHelper initialize(SectionInitContext context) {
             Map<String, Expression> params = context.getParameters().entrySet().stream()
-                    .collect(Collectors.toMap(e -> e.getKey(), e -> Expression.parse(e.getValue())));
+                    .collect(Collectors.toMap(e -> e.getKey(), e -> context.parseValue(e.getValue())));
             return new SetSectionHelper(params);
+        }
+
+        @Override
+        public Map<String, String> initializeBlock(Map<String, String> outerNameTypeInfos, BlockInfo block) {
+            if (block.getLabel().equals(MAIN_BLOCK_NAME)) {
+                Map<String, String> typeInfos = new HashMap<String, String>(outerNameTypeInfos);
+                for (Entry<String, String> entry : block.getParameters().entrySet()) {
+                    Expression expr = block.addExpression(entry.getKey(), entry.getValue());
+                    typeInfos.put(entry.getKey(), expr.typeCheckInfo);
+                }
+                return typeInfos;
+            } else {
+                return Collections.emptyMap();
+            }
         }
 
     }

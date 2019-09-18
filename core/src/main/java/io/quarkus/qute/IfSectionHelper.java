@@ -3,8 +3,10 @@ package io.quarkus.qute;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
@@ -17,23 +19,20 @@ import io.quarkus.qute.SectionHelperFactory.SectionInitContext;
  */
 public class IfSectionHelper implements SectionHelper {
 
-    private static final String CONDITION = "condition";
+    static final String CONDITION = "condition";
     private static final String OPERATOR = "operator";
     private static final String OPERAND = "operand";
     private static final String ELSE = "else";
     private static final String IF = "if";
     private static final String NEGATE = "!";
 
-    private final List<Block> blocks;
+    private final List<IfBlock> blocks;
 
     IfSectionHelper(SectionInitContext context) {
-        if (!context.hasParameter(CONDITION)) {
-            throw new IllegalStateException("Condition param must be present");
-        }
-        ImmutableList.Builder<Block> builder = ImmutableList.builder();
+        ImmutableList.Builder<IfBlock> builder = ImmutableList.builder();
         for (SectionBlock part : context.getBlocks()) {
-            if (Parser.MAIN_BLOCK_NAME.equals(part.label) || ELSE.equals(part.label)) {
-                builder.add(new Block(part));
+            if (SectionHelperFactory.MAIN_BLOCK_NAME.equals(part.label) || ELSE.equals(part.label)) {
+                builder.add(new IfBlock(part, context));
             }
         }
         this.blocks = builder.build();
@@ -45,8 +44,8 @@ public class IfSectionHelper implements SectionHelper {
     }
 
     private CompletionStage<ResultNode> resolveCondition(SectionResolutionContext context,
-            Iterator<Block> blocks) {
-        Block block = blocks.next();
+            Iterator<IfBlock> blocks) {
+        IfBlock block = blocks.next();
         if (block.condition == null) {
             // else without condition
             return context.execute(block.block, context.resolutionContext());
@@ -139,39 +138,57 @@ public class IfSectionHelper implements SectionHelper {
             return new IfSectionHelper(context);
         }
 
+        @Override
+        public Map<String, String> initializeBlock(Map<String, String> outerNameTypeInfos, BlockInfo block) {
+            if (MAIN_BLOCK_NAME.equals(block.getLabel()) || ELSE.equals(block.getLabel())) {
+                if (MAIN_BLOCK_NAME.equals(block.getLabel()) && !block.hasParameter(CONDITION)) {
+                    throw new IllegalStateException("Condition param must be present");
+                }
+                String conditionParam = block.getParameter(CONDITION);
+                if (conditionParam != null) {
+                    if (conditionParam.startsWith(NEGATE)) {
+                        if (block.hasParameter(OPERAND)) {
+                            throw new IllegalArgumentException(
+                                    "Logical complement operator may not be used for multiple operands");
+                        } else {
+                            conditionParam = conditionParam.substring(1, conditionParam.length());
+                        }
+                    } else if(block.hasParameter(OPERAND)) {
+                        block.addExpression(OPERAND, block.getParameter(OPERAND));
+                    }
+                    block.addExpression(CONDITION, conditionParam);
+                }
+            }
+            // If section never changes the scope
+            return Collections.emptyMap();
+        }
+
     }
 
-    static class Block {
+    static class IfBlock {
 
         final SectionBlock block;
         final Expression condition;
         final Expression operand;
         final Operator operator;
 
-        public Block(SectionBlock block) {
+        public IfBlock(SectionBlock block, SectionInitContext context) {
             this.block = block;
             Operator operator = Operator.from(block.parameters.get(OPERATOR));
             Expression operand;
             if (operator != null) {
-                String operandParam = block.parameters.get(OPERAND);
-                if (operandParam == null) {
+                operand = block.expressions.get(OPERAND);
+                if (operand == null) {
                     throw new IllegalArgumentException("Operator set but no operand param present");
                 }
-                operand = Expression.parse(operandParam);
             } else {
                 operand = null;
             }
-            String conditionParam = block.parameters.get(CONDITION);
-            if (conditionParam != null && conditionParam.startsWith(NEGATE)) {
-                if (operand != null) {
-                    throw new IllegalArgumentException("Logical complement operator may not be used for multiple operands");
-                } else {
-                    conditionParam = conditionParam.substring(1, conditionParam.length());
-                    operator = Operator.EQ;
-                    operand = Expression.single("false");
-                }
+            if (block.parameters.containsKey(CONDITION) && block.parameters.get(CONDITION).startsWith(NEGATE)) {
+                operator = Operator.EQ;
+                operand = Expression.literal("false");
             }
-            this.condition = conditionParam != null ? Expression.parse(conditionParam) : null;
+            this.condition = block.expressions.get(CONDITION);
             this.operand = operand;
             this.operator = operator;
         }

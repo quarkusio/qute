@@ -126,7 +126,7 @@ public class SimpleTest {
 
     @Test
     public void testNotFound() {
-        assertEquals("{foo.bar} Collection size: 0",
+        assertEquals("foo.bar Collection size: 0",
                 Engine.builder().addDefaultValueResolvers()
                         .addResultMapper(new ResultMapper() {
 

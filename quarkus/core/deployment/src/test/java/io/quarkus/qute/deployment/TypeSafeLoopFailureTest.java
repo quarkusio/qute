@@ -2,11 +2,7 @@ package io.quarkus.qute.deployment;
 
 import static org.junit.jupiter.api.Assertions.fail;
 
-import java.util.List;
-
-import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.spi.DeploymentException;
-import javax.inject.Named;
 
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.StringAsset;
@@ -16,28 +12,21 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 
 import io.quarkus.test.QuarkusUnitTest;
 
-public class NamedBeanPropertyNotFoundTest {
+public class TypeSafeLoopFailureTest {
 
     @RegisterExtension
     static final QuarkusUnitTest config = new QuarkusUnitTest()
             .setArchiveProducer(() -> ShrinkWrap.create(JavaArchive.class)
-                    .addClass(NamedFoo.class)
-                    .addAsResource(new StringAsset("{inject:foo.list.ping}"), "META-INF/resources/templates/fooping.html"))
+                    .addClass(Foo.class)
+                    .addAsResource(new StringAsset("{@list=java.util.List<io.quarkus.qute.deployment.Foo>}"
+                            + "{#for foo in list}"
+                            + "{foo.name}={foo.ages}"
+                            + "{/}"), "META-INF/resources/templates/foo.html"))
             .setExpectedException(DeploymentException.class);
 
     @Test
     public void testValidation() {
         fail();
-    }
-
-    @ApplicationScoped
-    @Named("foo")
-    public static class NamedFoo {
-
-        public List<String> getList() {
-            return null;
-        }
-
     }
 
 }

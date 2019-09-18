@@ -135,7 +135,7 @@ public class ValueResolverGenerator {
             }
         }
     }
-    
+
     private void implementGetPriority(ClassCreator valueResolver) {
         MethodCreator getPriority = valueResolver.getMethodCreator("getPriority", int.class)
                 .setModifiers(ACC_PUBLIC);
@@ -360,27 +360,9 @@ public class ValueResolverGenerator {
     }
 
     private Predicate<AnnotationTarget> initFilters(AnnotationInstance templateData) {
-        Predicate<AnnotationTarget> filter = t -> {
-            // Always ignore constructors, static and non-public members, synthetic and void methods
-            switch (t.kind()) {
-                case METHOD:
-                    MethodInfo method = t.asMethod();
-                    if (method.name().equals("<init>")
-                            || method.name().equals("<clinit>") || isSynthetic(method.flags())
-                            || !Modifier.isPublic(method.flags())
-                            || method.returnType().kind() == org.jboss.jandex.Type.Kind.VOID) {
-                        return false;
-                    } else {
-                        return true;
-                    }
-                case FIELD:
-                    return Modifier.isPublic(t.asField().flags()) && !Modifier.isStatic(t.asField().flags());
-                default:
-                    throw new IllegalArgumentException();
-            }
-        };
-        // @TemplateData
+        Predicate<AnnotationTarget> filter = ValueResolverGenerator::defaultFilter;
         if (templateData != null) {
+            // @TemplateData is present
             AnnotationValue ignoreValue = templateData.value("ignore");
             if (ignoreValue != null) {
                 List<Pattern> ignore = Arrays.asList(ignoreValue.asStringArray()).stream().map(Pattern::compile)
@@ -395,15 +377,40 @@ public class ValueResolverGenerator {
             }
             AnnotationValue propertiesValue = templateData.value("properties");
             if (propertiesValue != null && propertiesValue.asBoolean()) {
-                filter = filter.and(t -> {
-                    if (t.kind() == Kind.METHOD) {
-                        return t.asMethod().parameters().size() == 0;
-                    }
-                    return true;
-                });
+                filter = filter.and(ValueResolverGenerator::propertiesFilter);
             }
+        } else {
+            // Include only properties: instance fields and methods without params
+            filter = filter.and(ValueResolverGenerator::propertiesFilter);
         }
         return filter;
+    }
+
+    static boolean propertiesFilter(AnnotationTarget target) {
+        if (target.kind() == Kind.METHOD) {
+            return target.asMethod().parameters().size() == 0;
+        }
+        return true;
+    }
+
+    static boolean defaultFilter(AnnotationTarget target) {
+        // Always ignore constructors, static and non-public members, synthetic and void methods
+        switch (target.kind()) {
+            case METHOD:
+                MethodInfo method = target.asMethod();
+                if (method.name().equals("<init>")
+                        || method.name().equals("<clinit>") || isSynthetic(method.flags())
+                        || !Modifier.isPublic(method.flags())
+                        || method.returnType().kind() == org.jboss.jandex.Type.Kind.VOID) {
+                    return false;
+                } else {
+                    return true;
+                }
+            case FIELD:
+                return Modifier.isPublic(target.asField().flags()) && !Modifier.isStatic(target.asField().flags());
+            default:
+                throw new IllegalArgumentException("Unsupported annotation target");
+        }
     }
 
     public static boolean isSynthetic(int mod) {

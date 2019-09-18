@@ -55,9 +55,7 @@ public class ExtensionMethodGenerator {
         return generatedTypes;
     }
 
-    public void generate(MethodInfo method) {
-
-        // Validate the method first
+    public static void validate(MethodInfo method) {
         if (!Modifier.isStatic(method.flags())) {
             throw new IllegalStateException("Template extension method must be static: " + method);
         }
@@ -67,6 +65,12 @@ public class ExtensionMethodGenerator {
         if (method.parameters().isEmpty()) {
             throw new IllegalStateException("Template extension method must declare at least one parameter: " + method);
         }
+    }
+    
+    public void generate(MethodInfo method) {
+
+        // Validate the method first
+        validate(method);
 
         String matchName = null;
         AnnotationInstance extensionAnnotation = method.annotation(TEMPLATE_EXTENSION);

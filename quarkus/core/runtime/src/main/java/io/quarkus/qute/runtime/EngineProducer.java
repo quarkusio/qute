@@ -1,5 +1,11 @@
 package io.quarkus.qute.runtime;
 
+import static io.quarkus.qute.ValueResolvers.collectionResolver;
+import static io.quarkus.qute.ValueResolvers.mapEntryResolver;
+import static io.quarkus.qute.ValueResolvers.mapperResolver;
+import static io.quarkus.qute.ValueResolvers.orResolver;
+import static io.quarkus.qute.ValueResolvers.thisResolver;
+
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.Reader;
@@ -22,15 +28,15 @@ import io.quarkus.qute.Engine;
 import io.quarkus.qute.EngineBuilder;
 import io.quarkus.qute.NamespaceResolver;
 import io.quarkus.qute.ReflectionValueResolver;
+import io.quarkus.qute.Results.Result;
 import io.quarkus.qute.UserTagSectionHelper;
 import io.quarkus.qute.ValueResolver;
-import io.quarkus.qute.Results.Result;
 
 @Singleton
 public class EngineProducer {
 
     public static final String INJECT_NAMESPACE = "inject";
-    
+
     private static final Logger LOGGER = LoggerFactory.getLogger(EngineProducer.class);
 
     @Inject
@@ -55,20 +61,23 @@ public class EngineProducer {
         tagPath = basePath + "tags/";
 
         EngineBuilder builder = Engine.builder()
-                .addDefaultSectionHelpers().addDefaultValueResolvers();
-        
+                .addDefaultSectionHelpers();
+
+        // TODO Note that we do not add all default value resolvers due to type-safe checking
+        builder.addValueResolvers(thisResolver(), orResolver(), collectionResolver(), mapperResolver(), mapEntryResolver());
+
         // Fallback reflection resolver
         builder.addValueResolver(new ReflectionValueResolver());
-        
+
         // Allow anyone to customize the builder
         event.fire(builder);
-        
+
         // Resolve @Named beans
         builder.addNamespaceResolver(NamespaceResolver.builder(INJECT_NAMESPACE).resolve(ctx -> {
             InstanceHandle<Object> bean = Arc.container().instance(ctx.getName());
             return bean.isAvailable() ? bean.get() : Result.NOT_FOUND;
         }).build());
-        
+
         // Add generated resolvers
         for (String resolverClass : resolverClasses) {
             builder.addValueResolver(createResolver(resolverClass));

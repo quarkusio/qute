@@ -1,6 +1,9 @@
 package io.quarkus.qute;
 
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.CompletionStage;
 
 import io.quarkus.qute.Results.Result;
@@ -21,10 +24,7 @@ public class WithSectionHelper implements SectionHelper {
     private final String alias;
 
     WithSectionHelper(SectionInitContext context) {
-        if (!context.hasParameter(OBJECT)) {
-            throw new IllegalStateException("Object param not present");
-        }
-        this.object = Expression.parse(context.getParameter(OBJECT));
+        this.object = context.getExpression(OBJECT);
         this.alias = context.getParameter(ALIAS);
         this.main = context.getBlocks().get(0);
     }
@@ -68,6 +68,28 @@ public class WithSectionHelper implements SectionHelper {
         @Override
         public WithSectionHelper initialize(SectionInitContext context) {
             return new WithSectionHelper(context);
+        }
+
+        @Override
+        public Map<String, String> initializeBlock(Map<String, String> outerNameTypeInfos, BlockInfo block) {
+            if (block.getLabel().equals(MAIN_BLOCK_NAME)) {
+                String object = block.getParameters().get(OBJECT);
+                if (object == null) {
+                    throw new IllegalStateException("Object param not present");
+                }
+                Expression objectExpr = block.addExpression(OBJECT, object);
+                if (objectExpr.namespace == null && block.hasParameter(ALIAS)) {
+                    // Only validate expressions if alias param is set
+                    String alias = block.getParameters().get(ALIAS);
+                    Map<String, String> typeInfos = new HashMap<String, String>(outerNameTypeInfos);
+                    typeInfos.put(alias, objectExpr.typeCheckInfo);
+                    return typeInfos;
+                } else {
+                    return outerNameTypeInfos;
+                }
+            } else {
+                return Collections.emptyMap();
+            }
         }
 
     }

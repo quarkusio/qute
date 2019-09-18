@@ -108,7 +108,7 @@ public class VariantTemplateProducer {
         public Set<Expression> getExpressions() {
             throw new UnsupportedOperationException();
         }
-        
+
     }
 
     class VariantRenderingImpl extends RenderingBase {

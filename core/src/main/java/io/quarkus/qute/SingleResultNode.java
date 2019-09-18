@@ -16,7 +16,7 @@ public class SingleResultNode implements ResultNode {
         this.value = value;
         this.mappers = expressionNode.getEngine().getResultMappers().isEmpty() ? null
                 : expressionNode.getEngine().getResultMappers();
-        this.expression = this.mappers != null ? expressionNode.getExpression() : null;
+        this.expression = this.mappers != null ? expressionNode.expression : null;
     }
 
     @Override

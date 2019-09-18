@@ -1,6 +1,5 @@
 package io.quarkus.qute;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -13,7 +12,7 @@ import org.slf4j.LoggerFactory;
 import io.quarkus.qute.Results.Result;
 
 /**
- * TODO get rid of iterators and prepare for parallel processing
+ * 
  */
 class EvaluatorImpl implements Evaluator {
 
@@ -70,13 +69,14 @@ class EvaluatorImpl implements Evaluator {
 
     private CompletionStage<Object> resolveReference(boolean tryParent, Object ref, Iterator<String> parts,
             ResolutionContext resolutionContext) {
-        return resolve(new EvalContextImpl(tryParent, ref, parts.next(), resolutionContext), resolvers.iterator()).thenCompose(r -> {
-            if (parts.hasNext()) {
-                return resolveReference(false, r, parts, resolutionContext);
-            } else {
-                return CompletableFuture.completedFuture(r);
-            }
-        });
+        return resolve(new EvalContextImpl(tryParent, ref, parts.next(), resolutionContext), resolvers.iterator())
+                .thenCompose(r -> {
+                    if (parts.hasNext()) {
+                        return resolveReference(false, r, parts, resolutionContext);
+                    } else {
+                        return CompletableFuture.completedFuture(r);
+                    }
+                });
     }
 
     private CompletionStage<Object> resolve(EvalContextImpl evalContext, Iterator<ValueResolver> resolvers) {
@@ -113,19 +113,13 @@ class EvaluatorImpl implements Evaluator {
         final List<String> params;
         final ResolutionContext resolutionContext;
 
-        public EvalContextImpl(boolean lookupParent, Object base, String name, ResolutionContext resolutionContext) {
-            this.tryParent = lookupParent;
+        public EvalContextImpl(boolean tryParent, Object base, String name, ResolutionContext resolutionContext) {
+            this.tryParent = tryParent;
             this.base = base;
             this.resolutionContext = resolutionContext;
-            int start = name.indexOf("(");
-            if (start != -1 && name.endsWith(")")) {
-                List<String> params = new ArrayList<>();
-                // TODO string literals?
-                for (String param : name.substring(start + 1, name.length() - 1).split(",")) {
-                    params.add(param.trim());
-                }
-                this.params = ImmutableList.copyOf(params);
-                this.name = name.substring(0, start);
+            if (Expressions.isVirtualMethod(name)) {
+                this.params = Expressions.parseVirtualMethodParams(name);
+                this.name = Expressions.parserVirtualMethodName(name);
             } else {
                 this.params = Collections.emptyList();
                 this.name = name;
@@ -145,6 +139,11 @@ class EvaluatorImpl implements Evaluator {
         @Override
         public List<String> getParams() {
             return params;
+        }
+
+        @Override
+        public CompletionStage<Object> evaluate(String value) {
+            return evaluate(Expression.from(value));
         }
 
         @Override

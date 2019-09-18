@@ -1,3 +1,5 @@
+{@item=io.quarkus.qute.example.Item}
+{@this=java.util.Map<java.lang.String,io.quarkus.qute.example.Item>}
 <!DOCTYPE html>
 <html>
 <head>
@@ -11,7 +13,11 @@ body {
 </head>
 
 <body>
-    Hey, this is not {#if this.contains('foo')}TRUE{:else}FALSE{/if}!
+    Hey, this is not {item.price}!
+    
+    {#for entry in this}
+        <p>{count}. {entry.key}={entry.value.price}</p>
+    {/}
 </body>
 
 </html>

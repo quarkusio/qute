@@ -1,5 +1,7 @@
 package io.quarkus.qute;
 
+import java.util.Collections;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 
@@ -8,11 +10,11 @@ import java.util.concurrent.CompletionStage;
  */
 class ExpressionNode implements TemplateNode {
 
-    private final Expression expression;
+    final Expression expression;
     private final Engine engine;
 
-    public ExpressionNode(String value, Engine engine) {
-        this.expression = Expression.parse(value);
+    public ExpressionNode(Expression expression, Engine engine) {
+        this.expression = expression;
         this.engine = engine;
     }
 
@@ -26,8 +28,8 @@ class ExpressionNode implements TemplateNode {
         return engine;
     }
     
-    Expression getExpression() {
-        return expression;
+    public Set<Expression> getExpressions() {
+        return Collections.singleton(expression);
     }
 
     @Override

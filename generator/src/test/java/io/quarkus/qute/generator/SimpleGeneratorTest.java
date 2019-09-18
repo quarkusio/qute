@@ -132,6 +132,11 @@ public class SimpleGeneratorTest {
         public List<String> getParams() {
             return params;
         }
+        
+        @Override
+        public CompletionStage<Object> evaluate(String expression) {
+            return evaluate(Expression.from(expression));
+        }
 
         @Override
         public CompletionStage<Object> evaluate(Expression expression) {

@@ -12,6 +12,8 @@ import java.util.Map;
  */
 public interface SectionHelperFactory<T extends SectionHelper> {
 
+    String MAIN_BLOCK_NAME = "$main";
+
     /**
      * 
      * @return the list of default aliases
@@ -34,9 +36,42 @@ public interface SectionHelperFactory<T extends SectionHelper> {
      * @return a new helper instance
      */
     T initialize(SectionInitContext context);
-    
+
+    /**
+     * Initialize a section block.
+     * 
+     * @return a map of name to type infos
+     */
+    default Map<String, String> initializeBlock(Map<String, String> outerNameTypeInfos, BlockInfo block) {
+        return Collections.emptyMap();
+    }
+
+    /**
+     * 
+     */
+    interface BlockInfo {
+
+        String getLabel();
+
+        Map<String, String> getParameters();
+
+        default String getParameter(String name) {
+            return getParameters().get(name);
+        }
+
+        default boolean hasParameter(String name) {
+            return getParameters().containsKey(name);
+        }
+
+        Expression addExpression(String param, String value);
+
+    }
+
+    /**
+     * Section initialization context.
+     */
     public interface SectionInitContext {
-        
+
         default Map<String, String> getParameters() {
             return getBlocks().get(0).parameters;
         }
@@ -49,12 +84,15 @@ public interface SectionHelperFactory<T extends SectionHelper> {
             return getParameters().get(name);
         }
 
+        Expression getExpression(String parameterName);
+
+        Expression parseValue(String value);
+
         List<SectionBlock> getBlocks();
-        
+
         Engine getEngine();
-        
+
     }
-    
 
     public static final class ParametersInfo implements Iterable<List<Parameter>> {
 
@@ -88,15 +126,15 @@ public interface SectionHelperFactory<T extends SectionHelper> {
             }
 
             public Builder addParameter(String name) {
-                return addParameter(Parser.MAIN_BLOCK_NAME, name, null);
+                return addParameter(SectionHelperFactory.MAIN_BLOCK_NAME, name, null);
             }
 
             public Builder addParameter(String name, String defaultValue) {
-                return addParameter(Parser.MAIN_BLOCK_NAME, name, defaultValue);
+                return addParameter(SectionHelperFactory.MAIN_BLOCK_NAME, name, defaultValue);
             }
 
             public Builder addParameter(Parameter param) {
-                return addParameter(Parser.MAIN_BLOCK_NAME, param);
+                return addParameter(SectionHelperFactory.MAIN_BLOCK_NAME, param);
             }
 
             public Builder addParameter(String blockLabel, String name, String defaultValue) {

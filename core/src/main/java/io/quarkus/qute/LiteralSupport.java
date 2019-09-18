@@ -20,7 +20,7 @@ class LiteralSupport {
             return Result.NOT_FOUND;
         }
         Object literal = Result.NOT_FOUND;
-        if (Expression.isStringLiteralSeparator(value.charAt(0))) {
+        if (Parser.isStringLiteralSeparator(value.charAt(0))) {
             literal = value.substring(1, value.length() - 1);
         } else if (value.equals("true")) {
             literal = Boolean.TRUE;

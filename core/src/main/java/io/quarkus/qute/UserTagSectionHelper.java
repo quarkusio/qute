@@ -70,7 +70,7 @@ public class UserTagSectionHelper implements SectionHelper {
         public UserTagSectionHelper initialize(SectionInitContext context) {
 
             Map<String, Expression> params = context.getParameters().entrySet().stream()
-                    .collect(Collectors.toMap(e -> e.getKey(), e -> Expression.parse(e.getValue())));
+                    .collect(Collectors.toMap(e -> e.getKey(), e -> context.parseValue(e.getValue())));
 
             return new UserTagSectionHelper(new Supplier<Template>() {
 

@@ -39,7 +39,7 @@ class SectionNode implements TemplateNode {
         return builder.toString();
     }
     
-    Set<Expression> getExpressions() {
+    public Set<Expression> getExpressions() {
         Set<Expression> expressions = new HashSet<>();
         for (SectionBlock block : blocks) {
             expressions.addAll(block.getExpressions());
@@ -52,7 +52,7 @@ class SectionNode implements TemplateNode {
 
         final String helperName;
         private final List<SectionBlock> blocks;
-        private SectionHelperFactory<?> factory;
+        SectionHelperFactory<?> factory;
         private EngineImpl engine;
 
         public Builder(String helperName) {

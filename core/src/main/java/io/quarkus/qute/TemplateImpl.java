@@ -25,7 +25,7 @@ class TemplateImpl implements Template {
     public Rendering render() {
         return new RenderingImpl();
     }
-    
+
     @Override
     public Set<Expression> getExpressions() {
         return root.getExpressions();

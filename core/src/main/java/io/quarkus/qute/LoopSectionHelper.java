@@ -3,6 +3,8 @@ package io.quarkus.qute;
 import static io.quarkus.qute.Parameter.EMPTY;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -24,20 +26,16 @@ public class LoopSectionHelper implements SectionHelper {
     private final String alias;
     private final Expression iterable;
 
-    public LoopSectionHelper(String alias, String iterable) {
-        if (alias.equals(Parameter.EMPTY)) {
-            this.alias = DEFAULT_ALIAS;
-        } else {
-            this.alias = alias;
-        }
-        this.iterable = Expression.parse(Objects.requireNonNull(iterable));
+    LoopSectionHelper(String alias, Expression iterable) {
+        this.alias = alias.equals(Parameter.EMPTY) ? DEFAULT_ALIAS : alias;
+        this.iterable = Objects.requireNonNull(iterable);
     }
 
     @SuppressWarnings("unchecked")
     @Override
     public CompletionStage<ResultNode> resolve(SectionResolutionContext context) {
         return context.resolutionContext().evaluate(iterable).thenCompose(it -> {
-            // TODO ideally, we should not block here but we still need to retain the order of results 
+            // Ideally, we should not block here but we still need to retain the order of results 
             List<CompletionStage<ResultNode>> results = new ArrayList<>();
             Iterator<?> iterator;
             if (it instanceof Iterable) {
@@ -85,6 +83,11 @@ public class LoopSectionHelper implements SectionHelper {
 
     public static class Factory implements SectionHelperFactory<LoopSectionHelper> {
 
+        public static final String HINT = "<for-element>";
+        private static final String ALIAS = "alias";
+        private static final String IN = "in";
+        private static final String ITERABLE = "iterable";
+
         @Override
         public List<String> getDefaultAliases() {
             return ImmutableList.of("for", "each");
@@ -92,20 +95,39 @@ public class LoopSectionHelper implements SectionHelper {
 
         @Override
         public ParametersInfo getParameters() {
-            return ParametersInfo.builder().addParameter("alias", EMPTY).addParameter("in", EMPTY)
-                    .addParameter(new Parameter("iterable", null, true))
+            return ParametersInfo.builder()
+                    .addParameter(ALIAS, EMPTY)
+                    .addParameter(IN, EMPTY)
+                    .addParameter(new Parameter(ITERABLE, null, true))
                     .build();
         }
 
         @Override
         public LoopSectionHelper initialize(SectionInitContext context) {
-            String iterable = context.getParameter("iterable");
-            if (iterable == null) {
-                iterable = ValueResolvers.THIS;
-            }
-            return new LoopSectionHelper(context.getParameter("alias"), iterable);
+            return new LoopSectionHelper(context.getParameter(ALIAS), context.getExpression(ITERABLE));
         }
 
+        @Override
+        public Map<String, String> initializeBlock(Map<String, String> outerNameTypeInfos, BlockInfo block) {
+            if (block.getLabel().equals(MAIN_BLOCK_NAME)) {
+                String iterable = block.getParameters().get(ITERABLE);
+                if (iterable == null) {
+                    iterable = ValueResolvers.THIS;
+                }
+                Expression iterableExpr = block.addExpression(ITERABLE, iterable);
+                if (iterableExpr.typeCheckInfo != null) {
+                    String alias = block.getParameters().get(ALIAS);
+                    alias = alias.equals(Parameter.EMPTY) ? DEFAULT_ALIAS : alias;
+                    Map<String, String> typeInfos = new HashMap<String, String>(outerNameTypeInfos);
+                    typeInfos.put(alias, iterableExpr.typeCheckInfo + HINT);
+                    return typeInfos;
+                } else {
+                    return outerNameTypeInfos;
+                }
+            } else {
+                return Collections.emptyMap();
+            }
+        }
     }
 
     static class IterationElement implements Mapper {
@@ -137,9 +159,6 @@ public class LoopSectionHelper implements SectionHelper {
                     return index % 2 != 0 ? "even" : "odd";
                 case "hasNext":
                     return hasNext;
-                case "isLast":
-                case "last":    
-                    return !hasNext;
                 case "isOdd":
                 case "odd":
                     return index % 2 == 0;

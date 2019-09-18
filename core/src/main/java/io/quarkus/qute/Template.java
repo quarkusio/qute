@@ -28,9 +28,8 @@ public interface Template {
     Rendering render();
 
     /**
-     * NOTE: The set needn't to be exhaustive. It more like a hint for external tools.
      * 
-     * @return a set of expressions used in the template
+     * @return an immutable set of expressions
      */
     Set<Expression> getExpressions();
 

@@ -1,3 +1,4 @@
+{@items=java.util.Collection<io.quarkus.qute.example.Item>}
 <!DOCTYPE html>
 <html>
 <head>
@@ -15,6 +16,7 @@ body {
     <p>We have found <strong>{items.size}</strong> items.</p>
     <ol>
     {#each items}
+        <h2>{it.name}</h2>
         {#item limit=800 /}
     {/each}
     </ol>
