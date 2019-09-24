@@ -5,7 +5,6 @@ import static org.junit.jupiter.api.Assertions.fail;
 import java.util.List;
 
 import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.spi.DeploymentException;
 import javax.inject.Named;
 
 import org.jboss.shrinkwrap.api.ShrinkWrap;
@@ -23,7 +22,7 @@ public class NamedBeanPropertyNotFoundTest {
             .setArchiveProducer(() -> ShrinkWrap.create(JavaArchive.class)
                     .addClass(NamedFoo.class)
                     .addAsResource(new StringAsset("{inject:foo.list.ping}"), "META-INF/resources/templates/fooping.html"))
-            .setExpectedException(DeploymentException.class);
+            .setExpectedException(TemplateException.class);
 
     @Test
     public void testValidation() {

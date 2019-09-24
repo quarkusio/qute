@@ -2,8 +2,6 @@ package io.quarkus.qute.deployment;
 
 import static org.junit.jupiter.api.Assertions.fail;
 
-import javax.enterprise.inject.spi.DeploymentException;
-
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.StringAsset;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
@@ -22,7 +20,7 @@ public class TypeSafeLoopFailureTest {
                             + "{#for foo in list}"
                             + "{foo.name}={foo.ages}"
                             + "{/}"), "META-INF/resources/templates/foo.html"))
-            .setExpectedException(DeploymentException.class);
+            .setExpectedException(TemplateException.class);
 
     @Test
     public void testValidation() {

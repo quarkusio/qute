@@ -2,8 +2,6 @@ package io.quarkus.qute.deployment;
 
 import static org.junit.jupiter.api.Assertions.fail;
 
-import javax.enterprise.inject.spi.DeploymentException;
-
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.StringAsset;
 import org.jboss.shrinkwrap.api.spec.JavaArchive;
@@ -20,7 +18,7 @@ public class PropertyNotFoundTest {
                     .addClass(Foo.class)
                     .addAsResource(new StringAsset("{@foo=io.quarkus.qute.deployment.PropertyNotFoundTest$Foo}"
                             + "{foo.surname}"), "META-INF/resources/templates/foo.html"))
-            .setExpectedException(DeploymentException.class);
+            .setExpectedException(TemplateException.class);
 
     @Test
     public void testValidation() {

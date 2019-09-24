@@ -96,6 +96,36 @@ public class QuteProcessor {
     static final DotName MAP_ENTRY = DotName.createSimple(Entry.class.getName());
 
     @BuildStep
+    void processTemplateErrors(TemplatesAnalysisBuildItem analysis, List<IncorrectExpressionBuildItem> incorrectExpressions,
+            BuildProducer<ServiceStartBuildItem> serviceStart) {
+
+        List<String> errors = new ArrayList<>();
+
+        for (IncorrectExpressionBuildItem incorrectExpression : incorrectExpressions) {
+            if (incorrectExpression.clazz != null) {
+                errors.add(String.format(
+                        "Incorrect expression [%s]: property [%s] not found on a class [%s] nor handled by an extension method\n\t- found in template %s on line %s",
+                        incorrectExpression.expression, incorrectExpression.property, incorrectExpression.clazz,
+                        findTemplatePath(analysis, incorrectExpression.templateId), incorrectExpression.line));
+            } else {
+                errors.add(String.format(
+                        "Incorrect expression [%s]: @Named bean not found for [%s]\n\t- found in template %s on line %s",
+                        incorrectExpression.expression, incorrectExpression.property,
+                        findTemplatePath(analysis, incorrectExpression.templateId), incorrectExpression.line));
+            }
+        }
+
+        if (!errors.isEmpty()) {
+            StringBuilder message = new StringBuilder("Found " + errors.size() + " template problems: ");
+            int idx = 1;
+            for (String errorMessage : errors) {
+                message.append("\n").append("[").append(idx++).append("] ").append(errorMessage);
+            }
+            throw new TemplateException(message.toString());
+        }
+    }
+
+    @BuildStep
     AdditionalBeanBuildItem additionalBeans() {
         return AdditionalBeanBuildItem.builder()
                 .setUnremovable()
@@ -236,7 +266,7 @@ public class QuteProcessor {
     @BuildStep
     void validateInjectedBeans(ApplicationArchivesBuildItem applicationArchivesBuildItem,
             TemplatesAnalysisBuildItem analysis, BeanArchiveIndexBuildItem beanArchiveIndex,
-            List<IncorrectExpressionBuildItem> incorrectExpressions,
+            BuildProducer<IncorrectExpressionBuildItem> incorrectExpressions,
             List<TemplateExtensionMethodBuildItem> templateExtensionMethods,
             List<TypeCheckExcludeBuildItem> excludes,
             ValidationPhaseBuildItem validationPhase,
@@ -246,18 +276,8 @@ public class QuteProcessor {
         IndexView index = beanArchiveIndex.getIndex();
         Set<Expression> injectExpressions = collectInjectExpressions(analysis);
 
-        if (!injectExpressions.isEmpty() || !incorrectExpressions.isEmpty()) {
+        if (!injectExpressions.isEmpty()) {
             ValidationContext context = validationPhase.getContext();
-
-            for (IncorrectExpressionBuildItem incorrectExpression : incorrectExpressions) {
-                context.addDeploymentProblem(new IllegalStateException(
-                        "Incorrect expression [" + incorrectExpression.expression + "]: property ["
-                                + incorrectExpression.property
-                                + "] not found on a class "
-                                + incorrectExpression.clazz + " nor handled by an extension method\n\t- found in template "
-                                + findTemplatePath(analysis, incorrectExpression.templateId) + " on line "
-                                + incorrectExpression.line));
-            }
 
             Map<String, BeanInfo> namedBeans = context.get(BuildExtension.Key.BEANS).stream()
                     .filter(b -> b.getName() != null).collect(toMap(BeanInfo::getName, Function.identity()));
@@ -301,13 +321,9 @@ public class QuteProcessor {
                                 break;
                             }
                             if (member == null) {
-                                context.addDeploymentProblem(new IllegalStateException(
-                                        "Incorrect expression [" + expression.toOriginalString() + "]: property ["
-                                                + name
-                                                + "] not found on a class "
-                                                + match.clazz + " nor handled by an extension method\n\t- found in template "
-                                                + findTemplatePath(analysis, expression.origin.getTemplateId()) + " on line "
-                                                + expression.origin.getLine()));
+                                incorrectExpressions.produce(new IncorrectExpressionBuildItem(expression.toOriginalString(),
+                                        name, match.clazz.toString(), expression.origin.getLine(),
+                                        expression.origin.getTemplateId()));
                                 break;
                             } else {
                                 if (member.kind() == Kind.FIELD) {
@@ -336,9 +352,9 @@ public class QuteProcessor {
 
                 } else {
                     // User is injecting a non-existing bean
-                    validationError.produce(new ValidationErrorBuildItem(new IllegalStateException(
-                            "Incorrect expression [" + expression.toOriginalString()
-                                    + "] is referencing non-existing @Named bean: " + beanName)));
+                    incorrectExpressions.produce(new IncorrectExpressionBuildItem(expression.toOriginalString(),
+                            beanName, null, expression.origin.getLine(),
+                            expression.origin.getTemplateId()));
                 }
             }
         }
