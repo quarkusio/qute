@@ -13,12 +13,14 @@ import org.reactivestreams.Publisher;
 
 class TemplateImpl implements Template {
 
+    private final String generatedId;
     private final EngineImpl engine;
     final SectionNode root;
 
-    public TemplateImpl(EngineImpl engine, SectionNode root) {
+    TemplateImpl(EngineImpl engine, SectionNode root, String generatedId) {
         this.engine = engine;
         this.root = root;
+        this.generatedId = generatedId;
     }
 
     @Override
@@ -29,6 +31,11 @@ class TemplateImpl implements Template {
     @Override
     public Set<Expression> getExpressions() {
         return root.getExpressions();
+    }
+    
+    @Override
+    public String getGeneratedId() {
+        return generatedId;
     }
 
     private class RenderingImpl extends RenderingBase {

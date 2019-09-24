@@ -126,7 +126,7 @@ public class QuteProcessor {
         for (TemplatePathBuildItem path : templatePaths) {
             try {
                 Template template = dummyEngine.parse(new String(Files.readAllBytes(path.getFullPath())));
-                analysis.add(new TemplateAnalysis(template.getExpressions(), path.getFullPath()));
+                analysis.add(new TemplateAnalysis(template.getGeneratedId(), template.getExpressions(), path.getFullPath()));
             } catch (IOException e) {
                 LOGGER.warn("Unable to analyze the template from path: " + path.getFullPath(), e);
             }
@@ -184,7 +184,8 @@ public class QuteProcessor {
                         }
                         if (member == null) {
                             incorrectExpressions.produce(new IncorrectExpressionBuildItem(expression.toOriginalString(),
-                                    name, match.clazz.toString()));
+                                    name, match.clazz.toString(), expression.origin.getLine(),
+                                    expression.origin.getTemplateId()));
                             break;
                         } else {
                             match.type = resolveType(member, match, index);
@@ -253,7 +254,9 @@ public class QuteProcessor {
                         "Incorrect expression [" + incorrectExpression.expression + "]: property ["
                                 + incorrectExpression.property
                                 + "] not found on a class "
-                                + incorrectExpression.clazz + " nor handled by an extension method"));
+                                + incorrectExpression.clazz + " nor handled by an extension method\n\t- found in template "
+                                + findTemplatePath(analysis, incorrectExpression.templateId) + " on line "
+                                + incorrectExpression.line));
             }
 
             Map<String, BeanInfo> namedBeans = context.get(BuildExtension.Key.BEANS).stream()
@@ -302,7 +305,9 @@ public class QuteProcessor {
                                         "Incorrect expression [" + expression.toOriginalString() + "]: property ["
                                                 + name
                                                 + "] not found on a class "
-                                                + match.clazz + " nor handled by an extension method"));
+                                                + match.clazz + " nor handled by an extension method\n\t- found in template "
+                                                + findTemplatePath(analysis, expression.origin.getTemplateId()) + " on line "
+                                                + expression.origin.getLine()));
                                 break;
                             } else {
                                 if (member.kind() == Kind.FIELD) {
@@ -337,6 +342,15 @@ public class QuteProcessor {
                 }
             }
         }
+    }
+
+    private String findTemplatePath(TemplatesAnalysisBuildItem analysis, String id) {
+        for (TemplateAnalysis templateAnalysis : analysis.getAnalysis()) {
+            if (templateAnalysis.id.equals(id)) {
+                return templateAnalysis.path.toString();
+            }
+        }
+        return null;
     }
 
     @BuildStep

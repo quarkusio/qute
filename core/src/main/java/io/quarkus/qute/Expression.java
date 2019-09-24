@@ -8,6 +8,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
 import io.quarkus.qute.Results.Result;
+import io.quarkus.qute.TemplateNode.Origin;
 
 /**
  * Represents a value expression. It could be a literal such as {@code 'foo'}. It could have a namespace such as {@code data}
@@ -17,7 +18,7 @@ import io.quarkus.qute.Results.Result;
  */
 public final class Expression {
 
-    static final Expression EMPTY = new Expression(null, Collections.emptyList(), null, null);
+    static final Expression EMPTY = new Expression(null, Collections.emptyList(), null, null, null);
 
     /**
      * 
@@ -28,7 +29,7 @@ public final class Expression {
         if (value == null || value.isEmpty()) {
             return EMPTY;
         }
-        return Parser.parseExpression(value, Collections.emptyMap());
+        return Parser.parseExpression(value, Collections.emptyMap(), null);
     }
 
     public static Expression literal(String value) {
@@ -39,24 +40,26 @@ public final class Expression {
         if (literal == null) {
             throw new IllegalArgumentException("Not a literal value: " + value);
         }
-        return new Expression(null, Collections.singletonList(value), literal, null);
+        return new Expression(null, Collections.singletonList(value), literal, null, null);
     }
 
     public final String namespace;
     public final List<String> parts;
     public final CompletableFuture<Object> literal;
     public final String typeCheckInfo;
+    public final Origin origin;
 
-    Expression(String namespace, List<String> parts, Object literal, String typeCheckInfo) {
+    Expression(String namespace, List<String> parts, Object literal, String typeCheckInfo, Origin origin) {
         this.namespace = namespace;
         this.parts = parts;
         this.literal = literal != Result.NOT_FOUND ? CompletableFuture.completedFuture(literal) : null;
         this.typeCheckInfo = typeCheckInfo;
+        this.origin = origin;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(literalValue(), namespace, parts, typeCheckInfo);
+        return Objects.hash(literalValue(), namespace, parts, typeCheckInfo, origin);
     }
 
     @Override
@@ -72,7 +75,7 @@ public final class Expression {
         }
         Expression other = (Expression) obj;
         return Objects.equals(literalValue(), other.literalValue()) && Objects.equals(namespace, other.namespace)
-                && Objects.equals(parts, other.parts) && Objects.equals(typeCheckInfo, other.typeCheckInfo);
+                && Objects.equals(parts, other.parts) && Objects.equals(typeCheckInfo, other.typeCheckInfo) && Objects.equals(origin, other.origin);
     }
 
     @Override

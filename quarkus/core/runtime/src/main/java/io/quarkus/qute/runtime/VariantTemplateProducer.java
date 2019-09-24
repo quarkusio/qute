@@ -108,6 +108,11 @@ public class VariantTemplateProducer {
         public Set<Expression> getExpressions() {
             throw new UnsupportedOperationException();
         }
+        
+        @Override
+        public String getGeneratedId() {
+            throw new UnsupportedOperationException();
+        }
 
     }
 

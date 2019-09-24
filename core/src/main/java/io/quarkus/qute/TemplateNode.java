@@ -23,5 +23,15 @@ public interface TemplateNode {
     default Set<Expression> getExpressions() {
         return Collections.emptySet();
     }
+    
+    Origin getOrigin();
+    
+    interface Origin {
+        
+        int getLine();
+        
+        String getTemplateId();
+        
+    }
 
 }

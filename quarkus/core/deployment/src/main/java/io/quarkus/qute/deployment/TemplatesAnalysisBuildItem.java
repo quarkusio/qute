@@ -21,10 +21,12 @@ public final class TemplatesAnalysisBuildItem extends SimpleBuildItem {
 
     static class TemplateAnalysis {
 
+        public final String id;
         public final Set<Expression> expressions;
         public final Path path;
 
-        public TemplateAnalysis(Set<Expression> expressions, Path path) {
+        public TemplateAnalysis(String id, Set<Expression> expressions, Path path) {
+            this.id = id;
             this.expressions = expressions;
             this.path = path;
         }

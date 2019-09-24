@@ -12,16 +12,22 @@ class ExpressionNode implements TemplateNode {
 
     final Expression expression;
     private final Engine engine;
+    private final Origin origin;
 
-    public ExpressionNode(Expression expression, Engine engine) {
+    public ExpressionNode(Expression expression, Engine engine, Origin origin) {
         this.expression = expression;
         this.engine = engine;
+        this.origin = origin;
     }
 
     @Override
     public CompletionStage<ResultNode> resolve(ResolutionContext context) {
         return context.evaluate(expression)
                 .thenCompose(r -> CompletableFuture.<ResultNode> completedFuture(new SingleResultNode(r, this)));
+    }
+    
+    public Origin getOrigin() {
+        return origin;
     }
 
     Engine getEngine() {

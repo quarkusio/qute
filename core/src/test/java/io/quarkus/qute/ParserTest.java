@@ -78,6 +78,22 @@ public class ParserTest {
         assertExpr(expressions, "delta.id", 2, "[org.acme.Foo].bravo.id");
     }
 
+    @Test
+    public void testLines() {
+        Engine engine = Engine.builder().addDefaultSectionHelpers()
+                .build();
+        Template template = engine.parse("{@foo=org.acme.Foo}\n"
+                + "<style type=\"text/css\">\n" +
+                "body {\n" +
+                "  font-family: sans-serif;\n" +
+                "}\n"
+                + "{#for item in foo.items}\n\n"
+                + "{item.name}"
+                + "{/}");
+        assertEquals(6, find(template.getExpressions(), "foo.items").origin.getLine());
+        assertEquals(8, find(template.getExpressions(), "item.name").origin.getLine());
+    }
+
     private void assertExpr(Set<Expression> expressions, String value, int parts, String typeCheckInfo) {
         Expression expr = find(expressions, value);
         assertEquals(parts, expr.parts.size());

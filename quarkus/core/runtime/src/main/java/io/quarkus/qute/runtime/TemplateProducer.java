@@ -95,6 +95,11 @@ public class TemplateProducer {
             return template.get().getExpressions();
         }
 
+        @Override
+        public String getGeneratedId() {
+            return template.get().getGeneratedId();
+        }
+        
     }
 
 }

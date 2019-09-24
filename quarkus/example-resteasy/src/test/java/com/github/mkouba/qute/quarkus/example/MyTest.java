@@ -14,7 +14,7 @@ public class MyTest {
             "<head>\n" + 
             "<meta charset=\"UTF-8\">\n" + 
             "<style type=\"text/css\">\n" + 
-            "body {  font-family: sans-serif;\n" + 
+            "body {\n  font-family: sans-serif;\n" + 
             "}\n" + 
             "</style>\n" + 
             "<title>Item Detail</title>\n" + 

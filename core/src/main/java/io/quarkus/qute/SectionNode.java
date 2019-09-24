@@ -14,22 +14,28 @@ import io.quarkus.qute.SectionHelper.SectionResolutionContext;
  */
 class SectionNode implements TemplateNode {
 
-    static Builder builder(String helperName) {
-        return new Builder(helperName);
+    static Builder builder(String helperName, Origin origin) {
+        return new Builder(helperName, origin);
     }
 
     final List<SectionBlock> blocks;
 
     private final SectionHelper helper;
+    private final Origin origin;
 
-    public SectionNode(List<SectionBlock> blocks, SectionHelper helper) {
+    SectionNode(List<SectionBlock> blocks, SectionHelper helper, Origin origin) {
         this.blocks = ImmutableList.copyOf(blocks);
         this.helper = helper;
+        this.origin = origin;
     }
 
     @Override
     public CompletionStage<ResultNode> resolve(ResolutionContext context) {
         return helper.resolve(new SectionResolutionContextImpl(context));
+    }
+
+    public Origin getOrigin() {
+        return origin;
     }
 
     @Override
@@ -38,7 +44,7 @@ class SectionNode implements TemplateNode {
         builder.append("SectionNode [helper=").append(helper.getClass().getSimpleName()).append("]");
         return builder.toString();
     }
-    
+
     public Set<Expression> getExpressions() {
         Set<Expression> expressions = new HashSet<>();
         for (SectionBlock block : blocks) {
@@ -46,17 +52,18 @@ class SectionNode implements TemplateNode {
         }
         return expressions;
     }
-    
 
     static class Builder {
 
         final String helperName;
+        final Origin origin;
         private final List<SectionBlock> blocks;
         SectionHelperFactory<?> factory;
         private EngineImpl engine;
 
-        public Builder(String helperName) {
+        public Builder(String helperName, Origin origin) {
             this.helperName = helperName;
+            this.origin = origin;
             this.blocks = new ArrayList<>();
         }
 
@@ -76,7 +83,7 @@ class SectionNode implements TemplateNode {
         }
 
         SectionNode build() {
-            return new SectionNode(blocks, factory.initialize(new SectionInitContextImpl(engine, blocks)));
+            return new SectionNode(blocks, factory.initialize(new SectionInitContextImpl(engine, blocks)), origin);
         }
 
     }

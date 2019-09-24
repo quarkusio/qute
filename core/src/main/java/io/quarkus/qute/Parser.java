@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -20,6 +21,7 @@ import org.slf4j.LoggerFactory;
 
 import io.quarkus.qute.Results.Result;
 import io.quarkus.qute.SectionHelperFactory.ParametersInfo;
+import io.quarkus.qute.TemplateNode.Origin;
 
 /**
  * Simple non-reusable parser.
@@ -33,15 +35,22 @@ class Parser implements Function<String, Expression> {
     private static final char START_DELIMITER = '{';
     private static final char END_DELIMITER = '}';
     private static final char COMMENT_DELIMITER = '!';
+    // Linux, BDS, etc.
+    private static final char LINE_SEPARATOR_LF = '\n';
+    // Mac OS 9, ZX Spectrum :-), etc.
+    private static final char LINE_SEPARATOR_CR = '\r';
+    // DOS, OS/2, Microsoft Windows, etc. use CRLF
 
     private StringBuilder buffer;
     private State state;
+    private int line;
     private final Deque<SectionNode.Builder> sectionStack;
     private final Deque<SectionBlock.Builder> sectionBlockStack;
     private final Deque<ParametersInfo> paramsStack;
     private final Deque<Map<String, String>> typeInfoStack;
     private int sectionBlockIdx;
     private boolean ignoreContent;
+    private String templateId;
 
     public Parser(EngineImpl engine) {
         this.engine = engine;
@@ -49,7 +58,7 @@ class Parser implements Function<String, Expression> {
         this.buffer = new StringBuilder();
         this.sectionStack = new ArrayDeque<>();
         this.sectionStack
-                .addFirst(SectionNode.builder(ROOT_HELPER_NAME).setEngine(engine)
+                .addFirst(SectionNode.builder(ROOT_HELPER_NAME, new OriginImpl(line, templateId)).setEngine(engine)
                         .setHelperFactory(new SectionHelperFactory<SectionHelper>() {
                             @Override
                             public SectionHelper initialize(SectionInitContext context) {
@@ -70,10 +79,12 @@ class Parser implements Function<String, Expression> {
         this.paramsStack.addFirst(ParametersInfo.EMPTY);
         this.typeInfoStack = new ArrayDeque<>();
         this.typeInfoStack.addFirst(new HashMap<>());
+        this.line = 1;
     }
 
     Template parse(Reader reader) {
         long start = System.currentTimeMillis();
+        templateId = engine.generateId();
         reader = ensureBufferedReader(reader);
         try {
             int val;
@@ -104,7 +115,7 @@ class Parser implements Function<String, Expression> {
                 throw new IllegalStateException("No root section part found!");
             }
             root.addBlock(part.build());
-            Template template = new TemplateImpl(engine, root.build());
+            Template template = new TemplateImpl(engine, root.build(), templateId);
             LOGGER.trace("Parsing finished in {} ms", System.currentTimeMillis() - start);
             return template;
 
@@ -136,6 +147,9 @@ class Parser implements Function<String, Expression> {
         if (character == START_DELIMITER) {
             state = State.TAG_CANDIDATE;
         } else {
+            if (isLineSeparator(character)) {
+                line++;
+            }
             buffer.append(character);
         }
     }
@@ -160,7 +174,10 @@ class Parser implements Function<String, Expression> {
 
     private void tagCandidate(char character) {
         if (Character.isWhitespace(character)) {
-            buffer.append(START_DELIMITER);
+            buffer.append(START_DELIMITER).append(character);
+            if (isLineSeparator(character)) {
+                line++;
+            }
             state = State.TEXT;
         } else if (character == START_DELIMITER) {
             buffer.append(START_DELIMITER).append(START_DELIMITER);
@@ -172,11 +189,17 @@ class Parser implements Function<String, Expression> {
             buffer.append(character);
         }
     }
+    
+    private boolean isLineSeparator(char character) {
+        return character == LINE_SEPARATOR_CR
+                || (character == LINE_SEPARATOR_LF
+                && (buffer.length() == 0 || buffer.charAt(buffer.length() - 1) != LINE_SEPARATOR_CR));
+    }
 
     private void flushText() {
         if (buffer.length() > 0 && !ignoreContent) {
             SectionBlock.Builder block = sectionBlockStack.peek();
-            block.addNode(new TextNode(buffer.toString()));
+            block.addNode(new TextNode(buffer.toString(), new OriginImpl(line, templateId)));
         }
         this.buffer = new StringBuilder();
     }
@@ -211,7 +234,8 @@ class Parser implements Function<String, Expression> {
             // Init section block
             Map<String, String> typeInfos = typeInfoStack.peek();
             Map<String, String> result = factory.initializeBlock(typeInfos, mainBlock);
-            SectionNode.Builder sectionNode = SectionNode.builder(helperName).setEngine(engine).setHelperFactory(factory);
+            SectionNode.Builder sectionNode = SectionNode.builder(helperName, new OriginImpl(-1, templateId)).setEngine(engine)
+                    .setHelperFactory(factory);
 
             if (isEmptySection) {
                 sectionNode.addBlock(mainBlock.build());
@@ -305,7 +329,7 @@ class Parser implements Function<String, Expression> {
             typeInfos.put(key, "[" + value + "]");
 
         } else {
-            sectionBlockStack.peek().addNode(new ExpressionNode(apply(content), engine));
+            sectionBlockStack.peek().addNode(new ExpressionNode(apply(content), engine, new OriginImpl(line, templateId)));
         }
         this.buffer = new StringBuilder();
     }
@@ -484,7 +508,7 @@ class Parser implements Function<String, Expression> {
 
     }
 
-    public static Expression parseExpression(String value, Map<String, String> typeInfos) {
+    public static Expression parseExpression(String value, Map<String, String> typeInfos, Origin origin) {
         if (value == null || value.isEmpty()) {
             return Expression.EMPTY;
         }
@@ -522,7 +546,7 @@ class Parser implements Function<String, Expression> {
                 }
             }
         }
-        return new Expression(namespace, parts, literal, typeCheckInfo);
+        return new Expression(namespace, parts, literal, typeCheckInfo, origin);
     }
 
     static boolean isSeparator(char candidate) {
@@ -545,7 +569,56 @@ class Parser implements Function<String, Expression> {
 
     @Override
     public Expression apply(String value) {
-        return parseExpression(value, typeInfoStack.peek());
+        return parseExpression(value, typeInfoStack.peek(), new OriginImpl(line, templateId));
+    }
+
+    static class OriginImpl implements Origin {
+
+        private final int line;
+        private final String templateId;
+
+        OriginImpl(int line, String templateId) {
+            this.line = line;
+            this.templateId = templateId;
+        }
+
+        @Override
+        public int getLine() {
+            return line;
+        }
+
+        @Override
+        public String getTemplateId() {
+            return templateId;
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(line, templateId);
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            if (this == obj) {
+                return true;
+            }
+            if (obj == null) {
+                return false;
+            }
+            if (getClass() != obj.getClass()) {
+                return false;
+            }
+            OriginImpl other = (OriginImpl) obj;
+            return line == other.line && Objects.equals(templateId, other.templateId);
+        }
+
+        @Override
+        public String toString() {
+            StringBuilder builder = new StringBuilder();
+            builder.append("OriginImpl [line=").append(line).append(", templateId=").append(templateId).append("]");
+            return builder.toString();
+        }
+
     }
 
 }

@@ -32,6 +32,13 @@ public interface Template {
      * @return an immutable set of expressions
      */
     Set<Expression> getExpressions();
+    
+    /**
+     * The id is unique for the engine instance.
+     * 
+     * @return the generated id
+     */
+    String getGeneratedId();
 
     /**
      * This construct is not thread-safe.

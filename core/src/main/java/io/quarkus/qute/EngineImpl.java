@@ -14,6 +14,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.ServiceLoader;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
@@ -38,6 +39,7 @@ class EngineImpl implements Engine {
     private final List<Function<String, Optional<Reader>>> locators;
     private final List<ResultMapper> resultMappers;
     private final PublisherFactory publisherFactory;
+    private final AtomicLong idGenerator = new AtomicLong(0);
 
     EngineImpl(Map<String, SectionHelperFactory<?>> sectionHelperFactories, List<ValueResolver> valueResolvers,
             List<NamespaceResolver> namespaceResolvers, List<Function<String, Optional<Reader>>> locators,
@@ -118,6 +120,10 @@ class EngineImpl implements Engine {
     PublisherFactory getPublisherFactory() {
         return publisherFactory;
     }
+    
+    String generateId() {
+        return "" + idGenerator.incrementAndGet();
+    }
 
     private Template load(String id) {
         for (Function<String, Optional<Reader>> locator : locators) {
@@ -143,5 +149,6 @@ class EngineImpl implements Engine {
         sorted.sort(Comparator.comparingInt(WithPriority::getPriority).reversed());
         return ImmutableList.copyOf(sorted);
     }
+    
 
 }

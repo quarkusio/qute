@@ -10,17 +10,22 @@ import java.util.function.Consumer;
 public class TextNode implements TemplateNode, ResultNode {
 
     private final CompletableFuture<ResultNode> result;
-
     private final String value;
-
-    public TextNode(String value) {
+    private final Origin origin;
+    
+    public TextNode(String value, Origin origin) {
         this.result = CompletableFuture.completedFuture(this);
         this.value = value;
+        this.origin = origin;
     }
 
     @Override
     public CompletionStage<ResultNode> resolve(ResolutionContext context) {
         return result;
+    }
+    
+    public Origin getOrigin() {
+        return origin;
     }
 
     @Override
