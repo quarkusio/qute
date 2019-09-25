@@ -104,12 +104,12 @@ public class QuteProcessor {
         for (IncorrectExpressionBuildItem incorrectExpression : incorrectExpressions) {
             if (incorrectExpression.clazz != null) {
                 errors.add(String.format(
-                        "Incorrect expression [%s]: property [%s] not found on a class [%s] nor handled by an extension method\n\t- found in template %s on line %s",
+                        "Incorrect expression: %s\n\t- property [%s] not found on class [%s] nor handled by an extension method\n\t- found in template [%s] on line %s",
                         incorrectExpression.expression, incorrectExpression.property, incorrectExpression.clazz,
                         findTemplatePath(analysis, incorrectExpression.templateId), incorrectExpression.line));
             } else {
                 errors.add(String.format(
-                        "Incorrect expression [%s]: @Named bean not found for [%s]\n\t- found in template %s on line %s",
+                        "Incorrect expression %s\n\t @Named bean not found for [%s]\n\t- found in template [%s] on line %s",
                         incorrectExpression.expression, incorrectExpression.property,
                         findTemplatePath(analysis, incorrectExpression.templateId), incorrectExpression.line));
             }
@@ -156,7 +156,7 @@ public class QuteProcessor {
         for (TemplatePathBuildItem path : templatePaths) {
             try {
                 Template template = dummyEngine.parse(new String(Files.readAllBytes(path.getFullPath())));
-                analysis.add(new TemplateAnalysis(template.getGeneratedId(), template.getExpressions(), path.getFullPath()));
+                analysis.add(new TemplateAnalysis(template.getGeneratedId(), template.getExpressions(), path));
             } catch (IOException e) {
                 LOGGER.warn("Unable to analyze the template from path: " + path.getFullPath(), e);
             }
@@ -363,7 +363,7 @@ public class QuteProcessor {
     private String findTemplatePath(TemplatesAnalysisBuildItem analysis, String id) {
         for (TemplateAnalysis templateAnalysis : analysis.getAnalysis()) {
             if (templateAnalysis.id.equals(id)) {
-                return templateAnalysis.path.toString();
+                return templateAnalysis.path.getPath();
             }
         }
         return null;

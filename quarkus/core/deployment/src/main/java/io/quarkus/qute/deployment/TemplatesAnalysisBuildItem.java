@@ -1,6 +1,5 @@
 package io.quarkus.qute.deployment;
 
-import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
 
@@ -23,13 +22,14 @@ public final class TemplatesAnalysisBuildItem extends SimpleBuildItem {
 
         public final String id;
         public final Set<Expression> expressions;
-        public final Path path;
+        public final TemplatePathBuildItem path;
 
-        public TemplateAnalysis(String id, Set<Expression> expressions, Path path) {
+        public TemplateAnalysis(String id, Set<Expression> expressions, TemplatePathBuildItem path) {
             this.id = id;
             this.expressions = expressions;
             this.path = path;
         }
+        
     }
 
 }
