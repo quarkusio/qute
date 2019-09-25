@@ -539,10 +539,12 @@ class Parser implements Function<String, Expression> {
                 typeCheckInfo += "." + parts.stream().collect(Collectors.joining("."));
             } else if (typeInfos.containsKey(parts.get(0))) {
                 typeCheckInfo = typeInfos.get(parts.get(0));
-                if (parts.size() == 2) {
-                    typeCheckInfo += "." + parts.get(1);
-                } else if (parts.size() > 2) {
-                    typeCheckInfo += "." + parts.stream().skip(1).collect(Collectors.joining("."));
+                if (typeCheckInfo != null) {
+                    if (parts.size() == 2) {
+                        typeCheckInfo += "." + parts.get(1);
+                    } else if (parts.size() > 2) {
+                        typeCheckInfo += "." + parts.stream().skip(1).collect(Collectors.joining("."));
+                    }    
                 }
             }
         }

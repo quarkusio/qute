@@ -59,6 +59,9 @@ public class ParserTest {
                 + "{/}"
                 + "{#with foo.bravo as delta}"
                 + "{delta.id}"
+                + "{/}"
+                + "{#for foo in foos}"
+                + "{foo.baz}"
                 + "{/}");
         Set<Expression> expressions = template.getExpressions();
 
@@ -76,6 +79,7 @@ public class ParserTest {
         assertExpr(expressions, "baz.name", 2, "[org.acme.Foo].bar.name");
         assertExpr(expressions, "foo.bravo", 2, "[org.acme.Foo].bravo");
         assertExpr(expressions, "delta.id", 2, "[org.acme.Foo].bravo.id");
+        assertExpr(expressions, "foo.baz", 2, null);
     }
 
     @Test

@@ -115,14 +115,17 @@ public class LoopSectionHelper implements SectionHelper {
                     iterable = ValueResolvers.THIS;
                 }
                 Expression iterableExpr = block.addExpression(ITERABLE, iterable);
+                String alias = block.getParameters().get(ALIAS);
                 if (iterableExpr.typeCheckInfo != null) {
-                    String alias = block.getParameters().get(ALIAS);
                     alias = alias.equals(Parameter.EMPTY) ? DEFAULT_ALIAS : alias;
                     Map<String, String> typeInfos = new HashMap<String, String>(outerNameTypeInfos);
                     typeInfos.put(alias, iterableExpr.typeCheckInfo + HINT);
                     return typeInfos;
                 } else {
-                    return outerNameTypeInfos;
+                    Map<String, String> typeInfos = new HashMap<String, String>(outerNameTypeInfos);
+                    // Make sure we do not try to validate against the parent context
+                    typeInfos.put(alias, null);
+                    return typeInfos;
                 }
             } else {
                 return Collections.emptyMap();
