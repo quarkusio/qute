@@ -132,6 +132,8 @@ A section helper that defines the logic of a section can "execute" any of the bl
 {/if}
 ----
 
+NOTE: The section block syntax, `{:else}` is *not final yet* and may be subject of changes in the future.
+
 ==== Built-in Sections
 
 ===== Loop Section
@@ -384,7 +386,9 @@ If an invalid/incorrect expression is found the build fails.
 ----
 <1> Parameter declaration - maps `foo` to `org.acme.Foo`.
 <2> Not validated - no matching param declaration.
-<3> This expression is validated. `org.acme.Foo` must have a property `message` or a matching template extension method must exist. 
+<3> This expression is validated. `org.acme.Foo` must have a property `message` or a matching template extension method must exist.
+
+NOTE: The parameter declaration syntax is *not final yet* and may be subject of changes in the future.
 
 ==== Overriding Parameter Declarations
 
