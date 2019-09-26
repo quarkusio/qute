@@ -21,7 +21,7 @@ public class TypeSafeLoopTest {
     static final QuarkusUnitTest config = new QuarkusUnitTest()
             .setArchiveProducer(() -> ShrinkWrap.create(JavaArchive.class)
                     .addClass(Foo.class)
-                    .addAsResource(new StringAsset("{@list=java.util.List<io.quarkus.qute.deployment.Foo>}"
+                    .addAsResource(new StringAsset("{@java.util.List<io.quarkus.qute.deployment.Foo> list}"
                             + "{#for foo in list}"
                             + "{foo.name}={foo.age}={foo.charlie.name}"
                             + "{/}"), "META-INF/resources/templates/foo.html"));

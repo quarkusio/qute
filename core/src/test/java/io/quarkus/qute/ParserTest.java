@@ -41,8 +41,8 @@ public class ParserTest {
     public void testTypeCheckInfos() {
         Engine engine = Engine.builder().addDefaultSectionHelpers()
                 .build();
-        Template template = engine.parse("{@foo=org.acme.Foo}"
-                + "{@labels=java.util.List<org.acme.Label>}"
+        Template template = engine.parse("{@org.acme.Foo foo}"
+                + "{@java.util.List<org.acme.Label> labels}"
                 + "{foo.name}"
                 + "{#for item in foo.items}"
                 + "{item.name}{bar}"
@@ -86,7 +86,7 @@ public class ParserTest {
     public void testLines() {
         Engine engine = Engine.builder().addDefaultSectionHelpers()
                 .build();
-        Template template = engine.parse("{@foo=org.acme.Foo}\n"
+        Template template = engine.parse("{@org.acme.Foo foo}\n"
                 + "<style type=\"text/css\">\n" +
                 "body {\n" +
                 "  font-family: sans-serif;\n" +

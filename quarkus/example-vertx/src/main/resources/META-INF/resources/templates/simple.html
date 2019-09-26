@@ -1,5 +1,5 @@
-{@item=io.quarkus.qute.example.Item}
-{@this=java.util.Map<java.lang.String,io.quarkus.qute.example.Item>}
+{@io.quarkus.qute.example.Item item}
+{@java.util.List<io.quarkus.qute.example.Item> items}
 <!DOCTYPE html>
 <html>
 <head>
@@ -15,9 +15,10 @@ body {
 <body>
     Hey, this is not {item.price}!
     
-    {#for entry in this}
-        <p>{count}. {entry.key}={entry.value.price}</p>
-    {/}
+    {#for item in items}
+        <h1>{count}. {item.name}</h1>
+        <p>Price: {item.price}</p>
+    {/for}
 </body>
 
 </html>

@@ -16,7 +16,7 @@ public class PropertyNotFoundTest {
     static final QuarkusUnitTest config = new QuarkusUnitTest()
             .setArchiveProducer(() -> ShrinkWrap.create(JavaArchive.class)
                     .addClass(Foo.class)
-                    .addAsResource(new StringAsset("{@foo=io.quarkus.qute.deployment.PropertyNotFoundTest$Foo}"
+                    .addAsResource(new StringAsset("{@io.quarkus.qute.deployment.PropertyNotFoundTest$Foo foo}"
                             + "{foo.surname}"), "META-INF/resources/templates/foo.html"))
             .setExpectedException(TemplateException.class);
 

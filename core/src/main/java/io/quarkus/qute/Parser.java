@@ -321,11 +321,11 @@ class Parser implements Function<String, Expression> {
 
         } else if (content.charAt(0) == Tag.PARAM.getCommand()) {
 
-            // TODO validation
+            // {@org.acme.Foo foo}
             Map<String, String> typeInfos = typeInfoStack.peek();
-            int eqIdx = content.indexOf("=");
-            String key = content.substring(1, eqIdx);
-            String value = content.substring(eqIdx + 1, content.length());
+            int spaceIdx = content.indexOf(" ");
+            String key = content.substring(spaceIdx + 1, content.length());
+            String value = content.substring(1, spaceIdx);
             typeInfos.put(key, "[" + value + "]");
 
         } else {
