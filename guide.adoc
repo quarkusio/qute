@@ -324,8 +324,8 @@ If you want to use Qute in your Quarkus application add the following dependency
 </dependency>
 ----
 
-An `Engine` instance is automatically configured and a bean is also registered.
-Moreover, it's possible to inject templates located in the `META-INF/resources/templates` directory: 
+Quarkus extension creates an engine instance when the application starts and also registers a bean with scope `@Singleton`, bean type `io.quarkus.qute.Engine` and qualifier `@Default`.
+Moreover, all templates located in the `META-INF/resources/templates` directory are validated and can be injected like: 
 
 [source,java]
 ----
@@ -348,7 +348,7 @@ class MyBean {
 
 === Injecting Beans In Templates
 
-Any CDI bean annotated with `@Named` can be referenced in any template by using the `inject:` namespace.
+A CDI bean annotated with `@Named` can be referenced in any template by using the `inject:` namespace:
 
 [source,html]
 ----
@@ -356,13 +356,62 @@ Any CDI bean annotated with `@Named` can be referenced in any template by using 
 ----
 <1> First, a bean with name `myBean` is found and then used as the base object.
 
-NOTE: A `ValueResolver` is generated for all beans annotated with `@Named` so that it's possible to invoke any method without reflection.
+All expressions using the `inject` namespace are validated during build.
+For the expression "inject:myBean.price" the implementation class of the injected bean must either have the "price" property or a matching <<template_extension_methods,template extension method>> must exist. 
+
+NOTE: A `ValueResolver` is also generated for all beans annotated with `@Named` so that it's possible to access its properties without reflection.
+
+=== Parameter Declarations
+
+It is possible to specify parameter declarations in a template.
+Qute attempts to validate all expressions that reference such parameters.
+If an invalid/incorrect expression is found the build fails.
+
+[source,html]
+----
+{@org.acme.Foo foo} <1>
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Qute Hello</title>
+</head>
+<body>
+    <h1>{title}</h1> <2>
+    Hello {foo.message}! <3>
+</body>
+</html>
+----
+<1> Parameter declaration - maps `foo` to `org.acme.Foo`.
+<2> Not validated - no matching param declaration.
+<3> This expression is validated. `org.acme.Foo` must have a property `message` or a matching template extension method must exist. 
+
+==== Overriding Parameter Declarations
+
+[source,html]
+----
+{@org.acme.Foo foo}
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>Qute Hello</title>
+</head>
+<body>
+    {#for foo in baz.foos}
+    Hello {foo.message}! <2>
+    {/for}
+</body>
+</html>
+----
+<2> Not validated - `foo` is overriden by the loop section.
 
 === Configuration
 
 * `quarkus.qute.base-path` - a path relative from `META-INF/resources/`; all files in the base directory and its subdirectories are considered templates and watched for changes in the development mode
 * `quarkus.qute.suffixes` - a set of suffixes used when attempting to locate a template; by default, `engine.getTemplate(foo)` would result in several lookups: `META-INF/resources/templates/foo`, `META-INF/resources/templates/foo.html` and `META-INF/resources/templates/foo.txt`
 
+[[template_extension_methods]]
 === Template extension methods
 
 A value resolver is automatically generated for template extension methods annotated with `@TemplateExtension`.
